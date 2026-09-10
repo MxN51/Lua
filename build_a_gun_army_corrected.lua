@@ -3,7 +3,7 @@
 ]]--
 
 -- Services
-print("[Prism] boot...")
+print("[Prism] booting...")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -15,13 +15,13 @@ local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
-    warn("[Prism] ABANDON : LocalPlayer = nil (injecte en pleine partie, pas au menu)")
+    warn("[Prism] ABORT: LocalPlayer = nil (injected mid-game, not at menu)")
     return
 end
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- Registre des connexions SERVICE (à déconnecter lors de l'Unload).
--- (Les connexions sur les objets du GUI sont auto-nettoyées par SG:Destroy().)
+-- Service connections registry (to disconnect on Unload).
+-- (Connections on GUI objects are auto-cleaned by SG:Destroy().)
 local Connections = {}
 local function trackConn(conn) table.insert(Connections, conn) return conn end
 
@@ -40,13 +40,13 @@ trackConn(LocalPlayer.CharacterAdded:Connect(function(c) task.wait(0.5) pcall(re
 local Config = {
     MasterAutoFarm = false,
     AutoBuyAffordable = false,
-    AutoPlaceUpgrade = false, -- fusion Place + Upgrade (1 seul toggle Farm)
-    AutoPlace = false, -- legacy (forcé par AutoPlaceUpgrade, gardé pour compat)
-    AutoUpgrade = false, -- legacy (forcé par AutoPlaceUpgrade, gardé pour compat)
+    AutoPlaceUpgrade = false, -- merged Place + Upgrade (single Farm toggle)
+    AutoPlace = false, -- legacy (forced by AutoPlaceUpgrade, kept for compat)
+    AutoUpgrade = false, -- legacy (forced by AutoPlaceUpgrade, kept for compat)
     AutoRebirth = false,
     AutoPickupCoins = false,
 
-    -- legacy : toggles Filtres retirés de l'onglet Farm (clés gardées pour compat)
+    -- legacy: Filter toggles removed from Farm tab (keys kept for compat)
     EnableDPSFilter = false,
     MinDPS = 0,
     EnableRarityFilter = false,
@@ -60,7 +60,7 @@ local Config = {
 
     AntiAFK = false,
 
-    PlaceDelay = 0.5, BuyPause = 2, -- Pause voir roll : 0.5s = rapide (noms parfois "?"), 2s = noms fiables (slider Farm/Delays)
+    PlaceDelay = 0.5, BuyPause = 2, -- View roll pause: 0.5s = fast (names sometimes "?"), 2s = reliable names (Farm/Delays slider)
     RebirthWave = 20, RebirthCheckDelay = 1,
 
     MenuKey = Enum.KeyCode.RightShift,
@@ -68,7 +68,7 @@ local Config = {
 
     BoughtCount = 0, PlacedCount = 0, UpgradedCount = 0, RebirthCount = 0, PlaceIndex = 0,
     NeedPlace = false, PlaceAttempts = 0,
-    SkippedCount = 0, LastBoxAction = "—",
+    SkippedCount = 0, LastBoxAction = "-",
 }
 
 -- ============================================================
@@ -98,7 +98,7 @@ local function make(class, props)
 end
 
 -- ============================================================
--- THEME CLAUDE
+-- CLAUDE THEME
 -- ============================================================
 local T = {
     BG           = Color3.fromRGB(19,19,21),
@@ -115,12 +115,12 @@ local T = {
 }
 
 -- ============================================================
--- PLOT DETECTION (léger, cache)
+-- PLOT DETECTION (lightweight, cached)
 -- ============================================================
 local cachedPlot
 local function getPlot()
     if cachedPlot and cachedPlot.Parent then return cachedPlot end
-    -- 0) Attribut assignedPlot (trouvé dans ton dump : LocalPlayer:GetAttribute("assignedPlot") = "Plot_6")
+    -- 0) assignedPlot attribute (found in your dump: LocalPlayer:GetAttribute("assignedPlot") = "Plot_6")
     local assigned = LocalPlayer:GetAttribute("assignedPlot")
     if typeof(assigned)=="string" and assigned~="" then
         local plots = Workspace:FindFirstChild("Plots")
@@ -130,10 +130,10 @@ local function getPlot()
         end
         local wsPlot = Workspace:FindFirstChild(assigned)
         if wsPlot then cachedPlot=wsPlot return wsPlot end
-        -- cherche dans tous les descendants de Workspace si nom correspond
+        -- search in all Workspace descendants if name matches
         for _, d in ipairs(Workspace:GetDescendants()) do
             if d.Name==assigned and (d:IsA("Folder") or d:IsA("Model")) then
-                -- vérifie qu'il a bien des Slots ou un prompt
+                -- check that it actually has Slots or a prompt
                 if d:FindFirstChild("Slots", true) or d:FindFirstChild("WeaponBoxPrompt", true) then
                     cachedPlot=d return d
                 end
@@ -156,7 +156,7 @@ local function getPlot()
             if av and (av==LocalPlayer.Name or av==LocalPlayer) then cachedPlot=plot return plot end
         end
     end
-    -- 2) top-level folders/models avec Owner
+    -- 2) top-level folders/models with Owner
     for _, obj in ipairs(Workspace:GetChildren()) do
         if obj:IsA("Folder") or obj:IsA("Model") then
             local o = obj:FindFirstChild("Owner")
@@ -168,7 +168,7 @@ local function getPlot()
             if av and (av==LocalPlayer.Name) then cachedPlot=obj return obj end
         end
     end
-    -- 3) Fallback : n'importe quel Folder/Model qui contient des Slots
+    -- 3) Fallback: any Folder/Model containing Slots
     for _, obj in ipairs(Workspace:GetChildren()) do
         if obj:IsA("Folder") or obj:IsA("Model") then
             local hasSlots = false
@@ -184,7 +184,7 @@ local function getPlot()
             end
         end
     end
-    -- 4) Dernier recours : premier Folder/Model avec Slots trouvé
+    -- 4) Last resort: first Folder/Model with Slots found
     for _, obj in ipairs(Workspace:GetChildren()) do
         if obj:IsA("Folder") or obj:IsA("Model") then
             for _, d in ipairs(obj:GetDescendants()) do
@@ -195,7 +195,7 @@ local function getPlot()
     return nil
 end
 
--- cache pour cash/wave (trouvé une fois = réutilisé, ultra léger)
+-- cache for cash/wave (found once = reused, ultra lightweight)
 local _cashObj, _cashAttrRoot, _cashAttrKey, _cashUI
 local _waveObj, _waveAttrRoot, _waveAttrKey, _waveUI
 local _triedHeavyCash, _triedHeavyWave = false, false
@@ -229,7 +229,7 @@ local function getPlayerCash()
         end
         return nil
     end
-    -- 1) leaderstats : scan profond (enfants + attributs, insensible à la casse)
+    -- 1) leaderstats: deep scan (children + attributes, case-insensitive)
     local ls = LocalPlayer:FindFirstChild("leaderstats")
     if ls then
         for _, c in ipairs(ls:GetChildren()) do
@@ -248,7 +248,7 @@ local function getPlayerCash()
             end
         end
     end
-    -- 2) LocalPlayer : scan descendants peu profond (max 3 niveaux, pas cher)
+    -- 2) LocalPlayer: shallow descendant scan (max 3 levels, cheap)
     local function scanPlayerCash(root)
         for _, d in ipairs(root:GetDescendants()) do
             if d:IsA("ValueBase") then
@@ -272,7 +272,7 @@ local function getPlayerCash()
             if typeof(v)=="string" then local n=tonumber(v:gsub("[^%d.]","")) if n then _cashAttrRoot=LocalPlayer _cashAttrKey=k return n end end
         end
     end
-    -- 2b) ReplicatedStorage : scan lourd 1 seule fois
+    -- 2b) ReplicatedStorage: heavy scan only once
     if not _triedHeavyCash then
         _triedHeavyCash = true
         local rsCash = nil
@@ -288,7 +288,7 @@ local function getPlayerCash()
         end)
         if rsCash ~= nil then return rsCash end
     end
-    -- 3) dans le plot
+    -- 3) inside the plot
     local plot = getPlot()
     if plot then
         for _, name in ipairs({"Cash","Money","Coins","Currency"}) do
@@ -301,13 +301,13 @@ local function getPlayerCash()
             if c:IsA("ValueBase") and c.Name:lower():find("cash") then _cashObj=c return tryValue(c.Value) or 0 end
         end
     end
-    -- 4) PlayerGui text contenant $ (dernier recours, 1 seule fois lourd puis cache)
+    -- 4) PlayerGui text containing $ (last resort, heavy once then cached)
     if _cashUI and _cashUI.Parent then
         local t=_cashUI.Text local n=tonumber(t:gsub("[^%d]","")) if n then return n end
     end
     if not _triedHeavyCash then
-        -- déjà marqué tried au dessus, on scan GUI seulement si on a deja essayé RS
-        -- on le fait ici en même temps (une seule fois)
+        -- already marked tried above, we scan GUI only if RS was already tried
+        -- doing it here at the same time (once only)
     end
     local guiCash = nil
     if not _cashUI then
@@ -316,7 +316,7 @@ local function getPlayerCash()
             if pg then
                 for _, d in ipairs(pg:GetDescendants()) do
                     if d:FindFirstAncestor("PrismMenu") then
-                        -- ignore notre propre GUI
+                        -- ignore our own GUI
                     elseif d:IsA("TextLabel") or d:IsA("TextButton") then
                         local t = d.Text
                         if t and t:find("%$") then
@@ -400,7 +400,7 @@ local function getPlayerWave()
     end
     local plot = getPlot()
     if plot then
-        -- priorité: CurrentWave sur le plot (vu dans ton dump : plot attr CurrentWave = 57)
+        -- priority: CurrentWave on plot (seen in your dump: plot attr CurrentWave = 57)
         for _, name in ipairs({"CurrentWave","CurrentWaveValue","Wave","Waves","Stage","Level"}) do
             local obj = plot:FindFirstChild(name)
             if obj and obj:IsA("ValueBase") then _waveObj=obj local v=tryNum(obj.Value) if v then return v end end
@@ -421,7 +421,7 @@ local function getPlayerWave()
             end
         end
     end
-    -- PlayerGui fallback : texte "Wave 12" (cache après 1 scan) ; on ignore le GUI Prism lui-même
+    -- PlayerGui fallback: text "Wave 12" (cached after 1 scan); we ignore the Prism GUI itself
     if _waveUI and _waveUI.Parent then
         local t=_waveUI.Text local n=tonumber(t:gsub("[^%d]","")) if n then return n end
     end
@@ -448,7 +448,7 @@ local function getPlayerWave()
     return 0
 end
 
--- Debug helper: dump toutes les sources possibles de cash/wave
+-- Debug helper: dump all possible sources for cash/wave
 local function dumpCurrencySources()
     print("=== CURRENCY / WAVE SOURCES ===")
     local ls = LocalPlayer:FindFirstChild("leaderstats")
@@ -500,9 +500,9 @@ local function dumpCurrencySources()
 end
 
 -- ============================================================
--- PROMPTS (léger)
+-- PROMPTS (lightweight)
 -- ============================================================
-local _fppFn -- cache (nil = pas encore cherché, false = absent)
+local _fppFn -- cache (nil = not yet searched, false = absent)
 local function getRemoteFire()
     if _fppFn == nil then
         local f = rawget(_G, "fireproximityprompt")
@@ -515,7 +515,7 @@ local function getRemoteFire()
     return _fppFn
 end
 local function hasRemoteFire() return getRemoteFire() ~= nil end
--- Hold direct (touche E simulée sur place) : fallback quand le tir distant échoue
+-- Direct Hold (simulated E key in place): fallback when remote fire fails
 local function firePromptLegacy(prompt)
     if not prompt or not prompt:IsA("ProximityPrompt") then return false end
     if prompt.Enabled == false then return false end
@@ -533,7 +533,7 @@ end
 local function firePrompt(prompt)
     if not prompt or not prompt:IsA("ProximityPrompt") then return false end
     if prompt.Enabled == false then return false end
-    -- Exploit : fireproximityprompt si dispo (marche même de loin, SANS TP)
+    -- Exploit: fireproximityprompt if available (works even from far away, WITHOUT TP)
     local fpp = getRemoteFire()
     if fpp then
         local ok = pcall(fpp, prompt)
@@ -541,7 +541,7 @@ local function firePrompt(prompt)
     end
     return firePromptLegacy(prompt)
 end
--- Part physique associée à un prompt (pour se TP à portée)
+-- Physical part associated with a prompt (to TP within range)
 local function getPromptPart(prompt)
     if not prompt then return nil end
     local parent = prompt.Parent
@@ -572,7 +572,7 @@ local function fireClick(det)
     end
     return false
 end
-local _fsFn -- cache firesignal (nil = pas encore cherché, false = absent)
+local _fsFn -- cache firesignal (nil = not yet searched, false = absent)
 local function getFireSignal()
     if _fsFn == nil then
         local f = rawget(_G, "firesignal")
@@ -584,9 +584,9 @@ local function getFireSignal()
     if _fsFn == false then return nil end
     return _fsFn
 end
--- Vrai clic souris au centre du bouton (quand firesignal est absent).
--- Cache notre menu le temps du clic, restauration GARANTIE même si le clic plante
--- (sinon le menu Prism reste caché — bug vu en jeu).
+-- Real mouse click at button center (when firesignal is absent).
+-- Hide our menu during the click, restoration GUARANTEED even if click fails
+-- (otherwise Prism menu stays hidden - bug seen in-game).
 local function clickButtonReal(btn)
     local pos, size
     pcall(function() pos, size = btn.AbsolutePosition, btn.AbsoluteSize end)
@@ -601,15 +601,15 @@ local function clickButtonReal(btn)
     task.wait(0.08)
     local x, y = pos.X + size.X / 2, pos.Y + size.Y / 2
     local clicked = false
-    -- essai 1 : clic souris synthétique
+    -- attempt 1: synthetic mouse click
     pcall(function()
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game)
         task.wait(0.05)
         VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game)
         clicked = true
     end)
-    -- essai 2 : touche Entrée sur bouton focus (si le clic souris a échoué ;
-    -- ignoré si le bouton n'est pas sélectionnable, sinon le moteur spamme une erreur)
+    -- attempt 2: Enter key on focused button (if mouse click failed;
+    -- ignored if button is not selectable, otherwise engine spams an error)
     if not clicked then
         local selectable = false
         pcall(function() selectable = btn.Selectable ~= false end)
@@ -627,13 +627,13 @@ local function clickButtonReal(btn)
         pcall(function() game:GetService("GuiService").SelectedObject = nil end)
         if not clicked and tick()%8<0.6 then print("[Gui] VIM non supporté : aucun clic possible") end
     end
-    -- restauration TOUJOURS
+    -- restoration ALWAYS
     pcall(function()
         if menuMain then menuMain.Visible = true end
     end)
     return clicked
 end
--- Clic logiciel sur un bouton du jeu (ex: gros bouton jaune Rebirth)
+-- Software click on a game button (e.g. big yellow Rebirth button)
 local function clickButton(btn)
     if not btn or not btn:IsA("GuiButton") then return false end
     if not btn.Visible then
@@ -660,11 +660,11 @@ local function clickButton(btn)
     if tick()%8<0.6 then print("[Gui] Clic souris réel sur", btn:GetFullName()) end
     return clickButtonReal(btn)
 end
--- Clic sur Frame/ImageLabel (ex: RebirthFrame) via InputBegan + input synthétique
+-- Click on Frame/ImageLabel (e.g. RebirthFrame) via InputBegan + synthetic input
 local function fireGuiInput(guiObj)
     local fs = getFireSignal()
     if not fs then
-        if tick()%10<0.6 then print("[Gui] firesignal indisponible — clic impossible sur", guiObj:GetFullName()) end
+        if tick()%10<0.6 then print("[Gui] firesignal indisponible - clic impossible sur", guiObj:GetFullName()) end
         return false
     end
     if guiObj:IsA("GuiButton") then
@@ -702,7 +702,7 @@ end
 -- FARM LOGIC
 -- ============================================================
 local getPendingSignature, findPendingObject, pendingWeaponName, findRolledWeapon, rolledIdentity, findOverheadWeapon, stripRich, rolledStableKey -- forward : définis plus bas, utilisés par le buy
--- Caisse d'arme : cherche la part physique (pour TP visible dessus)
+-- Weapon Box: find the physical part (for visible TP onto it)
 local function findWeaponBoxPart(plot)
     if not plot then return nil end
     for _, name in ipairs({"WeaponBoxBuy","WeaponBox","MysteryBox","Shop","Crate","Box"}) do
@@ -729,8 +729,8 @@ local function findWeaponBoxPart(plot)
     return nil
 end
 
--- Prix réel de la caisse lu dans l'UI du jeu (WeaponBoxGui > ... > ItemPrice "$4.3M")
--- Gère : "$4.3M", "$4,096.5B" (milliers US), "$4,10T" (décimale FR)
+-- Real box price read from game UI (WeaponBoxGui > ... > ItemPrice "$4.3M")
+-- Handles: "$4.3M", "$4,096.5B" (US thousands), "$4.10T" (FR decimal)
 local function parseMoneyText(t)
     if typeof(t) ~= "string" or t == "" then return nil end
     local cleaned = t:gsub("[^%d.,]", "")
@@ -767,7 +767,7 @@ local function getWeaponBoxPrice()
     end
     return nil
 end
--- Bouton du GUI de la caisse : BuyButton (acheter) / DiscardButton (jeter)
+-- Box GUI button: BuyButton (buy) / DiscardButton (discard)
 local function findBoxButton(nameKeys, textKeys)
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return nil end
@@ -789,7 +789,7 @@ local function findBoxButton(nameKeys, textKeys)
     end
     return nil
 end
--- Remotes officiels de la caisse (source WeaponBoxGuiScript) :
+-- Official box remotes (source WeaponBoxGuiScript):
 -- Buy = RemoteEvents.WeaponBoxBuy:FireServer()  /  Discard = RemoteEvents.WeaponBoxDiscard:FireServer()
 local function getBoxRemotes()
     local folder = ReplicatedStorage:FindFirstChild("RemoteEvents")
@@ -818,11 +818,11 @@ local function getBoxRemotes()
 end
 
 -- ============================================================
--- ANTI-POPUP ROBUX (fail-closed strict)
--- Le serveur répond à TOUTE tentative trop chère par le popup
--- "Buy Robux and item / Instant Money". Donc on ne touche à
--- rien dès que le prix est inconnu, le cash est inconnu (0),
--- ou les fonds sont insuffisants. Aucun "on tente quand même".
+-- ANTI-ROBUX POPUP (strict fail-closed)
+-- Server responds to ANY too-expensive attempt with the popup
+-- "Buy Robux and item / Instant Money". So we touch
+-- nothing as soon as price is unknown, cash is unknown (0),
+-- or funds are insufficient. No "let's try anyway".
 -- ============================================================
 local function canAffordNow(price)
     if typeof(price) ~= "number" or price <= 0 then return false end
@@ -831,15 +831,15 @@ local function canAffordNow(price)
     if typeof(cash) ~= "number" or cash <= 0 then return false end
     return cash >= price
 end
--- Ferme le popup Robux s'il apparaît malgré tout (filet de sécurité).
--- Le prompt Roblox se ferme avec Echap : on simule la touche.
+-- Close the Robux popup if it appears anyway (safety net).
+-- Roblox prompt closes with Escape: we simulate the key.
 local function closeRobuxPopup()
     pcall(function()
         VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
         task.wait(0.05)
         VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Escape, false, game)
     end)
-    -- + clic direct sur les boutons fermer (X / Close / Cancel) du prompt
+    -- + direct click on prompt close buttons (X / Close / Cancel)
     pcall(function()
         local containers = {}
         local pg = LocalPlayer:FindFirstChild("PlayerGui")
@@ -875,7 +875,7 @@ local function closeRobuxPopup()
         end
     end)
 end
--- Détecte si le popup Robux est visible (pour cooldown + fermeture auto).
+-- Detect if Robux popup is visible (for cooldown + auto-close).
 local function isRobuxPopupVisible()
     local found = false
     pcall(function()
@@ -913,14 +913,14 @@ end
 local function triggerWeaponBox()
     local plot = getPlot()
     if not plot then
-        if tick()%5<0.6 then print("[Buy] Pas de plot détecté — TP caisse impossible") end
+        if tick()%5<0.6 then print("[Buy] No plot detected - box TP impossible") end
         return false
     end
-    -- PASSE 1 : mots-clés précis de la caisse (jamais un slot)
+    -- PASS 1: precise box keywords (never a slot)
     local prompt = findPrompt(plot, {"WeaponBoxPrompt","MysteryBox","ShopPrompt","BuyWeapon","OpenBox"})
     if not prompt then
-        -- PASSE 2 : génériques, mais on EXCLUT les prompts des slots (WeaponBasePart),
-        -- sinon le buy tirait au hasard un des 42 slots au lieu de la caisse
+        -- PASS 2: generic, but we EXCLUDE slot prompts (WeaponBasePart),
+        -- otherwise buy would randomly fire one of the 42 slots instead of the box
         for _, d in ipairs(plot:GetDescendants()) do
             if d:IsA("ProximityPrompt") then
                 local par = d.Parent
@@ -935,7 +935,7 @@ local function triggerWeaponBox()
         end
     end
     if not prompt then
-        -- fallback ClickDetector (certains jeux utilisent ça)
+        -- fallback ClickDetector (some games use this)
         for _, d in ipairs(plot:GetDescendants()) do
             if d:IsA("ClickDetector") then
                 local n = d.Parent and d.Parent.Name:lower() or ""
@@ -946,8 +946,8 @@ local function triggerWeaponBox()
         end
         return false
     end
-    -- prix connu ? (sert au skip ET à la confirmation d'achat via baisse du cash)
-    -- Le skip s'applique aussi en MASTER, sinon le master achète sans regarder le prix
+    -- known price? (used for skip AND purchase confirmation via cash decrease)
+    -- Skip also applies in MASTER, otherwise master buys without checking price
     local buyPrice
     if Config.AutoBuyAffordable or Config.MasterAutoFarm then
         local box = plot:FindFirstChild("WeaponBox", true) or plot:FindFirstChild("WeaponBoxBuy", true)
@@ -957,19 +957,19 @@ local function triggerWeaponBox()
         if not buyPrice then
             local p2, raw2 = getWeaponBoxPrice()
             buyPrice = p2
-            if raw2 and tick()%10<0.6 then print("[Buy] Prix brut UI: '" .. raw2 .. "'") end
+            if raw2 and tick()%10<0.6 then print("[Buy] Price brut UI: '" .. raw2 .. "'") end
         end
         if buyPrice then
             Config.LastBoxPrice = buyPrice
         elseif tick()%10<0.6 then
-            print("[Buy] Prix introuvable (fail-open : on tente quand même)")
+            print("[Buy] Price not found (fail-open: trying anyway)")
         end
     end
-    -- TP à la caisse si loin — TOUJOURS (même si trop cher : on ne re-TP que depuis loin,
-    -- donc pas de boucle, et l'utilisateur voit le déplacement)
+    -- TP to box if far - ALWAYS (even if too expensive: we only re-TP from far,
+    -- so no loop, and user sees the movement)
     local promptPart = prompt and getPromptPart(prompt) or nil
     local tpTarget = promptPart or findWeaponBoxPart(plot)
-    -- préfère la Zone : le jeu exige de la TOUCHER (Zone.Touched) pour valider
+    -- prefer the Zone: game requires TOUCHING it (Zone.Touched) to validate
     pcall(function()
         local boxM = plot:FindFirstChild("WeaponBox", true)
         local z = boxM and boxM:FindFirstChild("Zone", true)
@@ -984,17 +984,17 @@ local function triggerWeaponBox()
         if dist > math.min(range, 10) then
             gotoPart(tpTarget, 3)
             if tick()%8<0.6 then
-                print("[Buy] TP caisse:", tpTarget:GetFullName(), "| plot:", plot.Name, "| prompt:", prompt.Name)
+                print("[Buy] TP to box:", tpTarget:GetFullName(), "| plot:", plot.Name, "| prompt:", prompt.Name)
             end
             task.wait(0.2)
         end
     elseif not tpTarget and tick()%5<0.6 then
-        print("[Buy] Caisse introuvable dans", plot.Name, "— tir du prompt sans TP")
+        print("[Buy] Box not found in", plot.Name, "- firing prompt without TP")
     end
-    -- (le skip trop-cher se fait plus bas, par arme proposée : ACHAT si abordable, DISCARD sinon)
+    -- (too-expensive skip is done lower, by offered weapon: BUY if affordable, DISCARD otherwise)
     if not _buyLogged then
         _buyLogged = true
-        print("[Buy] Tir prompt:", prompt.Name, "(", prompt.Parent and prompt.Parent.Name or "?", ")")
+        print("[Buy] Firing prompt:", prompt.Name, "(", prompt.Parent and prompt.Parent.Name or "?", ")")
     end
     local cashBefore = getPlayerCash()
     local sigBefore = getPendingSignature()
@@ -1040,22 +1040,22 @@ local function triggerWeaponBox()
         end)
         return opened
     end
-    -- ANTI-POPUP ROBUX : JAMAIS d'ouverture si prix inconnu, cash inconnu,
-    -- fonds insuffisants, popup visible, ou cooldown après un "trop cher".
-    -- Le prix lu n'est qu'une ESTIMATION (UI pas encore à jour après un
-    -- discard) : on exige en plus cash >= dernier prix refusé + marge 5%.
+    -- ANTI-ROBUX POPUP: NEVER open if price unknown, cash unknown,
+    -- insufficient funds, popup visible, or cooldown after "too expensive".
+    -- Read price is only an ESTIMATE (UI not yet updated after a
+    -- discard): we also require cash >= last refused price + 5% margin.
     do
         local cashO = 0
         pcall(function() cashO = getPlayerCash() end)
         if typeof(buyPrice) ~= "number" or buyPrice <= 0 then
-            if tick()%8<0.6 then print("[Buy] Prix inconnu -> pas d'ouverture (anti-popup Robux)") end
+            if tick()%8<0.6 then print("[Buy] Unknown price -> no opening (anti-Robux popup)") end
             return false
         end
         if typeof(cashO) ~= "number" or cashO <= 0 then
-            if tick()%8<0.6 then print("[Buy] Cash inconnu -> pas d'ouverture (anti-popup Robux)") end
+            if tick()%8<0.6 then print("[Buy] Unknown cash -> no opening (anti-Robux popup)") end
             return false
         end
-        -- un popup est ouvert : on le ferme et on ne touche à rien ce cycle
+        -- a popup is open: we close it and touch nothing this cycle
         if isRobuxPopupVisible() then
             closeRobuxPopup()
             Config.LastPopupT = tick()
@@ -1065,29 +1065,29 @@ local function triggerWeaponBox()
         if (tick() - (Config.LastTooExpensiveT or 0)) < 5 then
             local need = (Config.LastTooExpensivePrice or buyPrice) * 1.05
             if cashO < need then
-                if tick()%8<0.6 then print("[Buy] Cooldown trop-cher — attente fonds:", fmt(cashO), "<", fmt(need)) end
+                if tick()%8<0.6 then print("[Buy] Too-expensive cooldown - waiting for funds:", fmt(cashO), "<", fmt(need)) end
                 return false
             end
         end
         local needOpen = math.max(buyPrice, Config.LastTooExpensivePrice or 0) * 1.05
         if cashO < needOpen then
-            if tick()%8<0.6 then print("[Buy] Attente fonds avant ouverture — prix:", fmt(buyPrice), "| cash:", fmt(cashO)) end
+            if tick()%8<0.6 then print("[Buy] Waiting for funds before opening - price:", fmt(buyPrice), "| cash:", fmt(cashO)) end
             return false
         end
         Config.OpenUnknownSince = nil
     end
-    -- PHASE 1 : OUVERTURE seulement si aucune arme proposée (sinon on reroll par-dessus !)
-    -- (le compteur Bought n'augmente que sur acquisition VÉRIFIÉE, pas sur les tirs)
-    -- Throttle 2s entre tentatives (sinon l'animation de roll beugue).
+    -- PHASE 1: OPENING only if no weapon is offered (otherwise we reroll over it!)
+    -- (Bought counter only increases on VERIFIED acquisition, not on fires)
+    -- Throttle 2s between attempts (otherwise roll animation glitches).
     if not findRolledWeapon(plot) then
         if (tick() - (Config.LastOpenFireT or 0)) < 2 then return false end
         Config.LastOpenFireT = tick()
         firePrompt(prompt)
         task.wait(0.35)
-        -- l'ouverture elle-même peut déclencher le popup si l'estimation du prix
-        -- était périmée : on le referme aussitôt et on mémorise le prix refusé.
+        -- opening itself can trigger popup if price estimate
+        -- was stale: we close it immediately and memorize refused price.
         if isRobuxPopupVisible() then
-            print("[Buy] Popup Robux après ouverture → fermeture, attente fonds")
+            print("[Buy] Robux popup after opening → closing, waiting for funds")
             closeRobuxPopup()
             Config.LastPopupT = tick()
             Config.LastTooExpensivePrice = buyPrice
@@ -1095,7 +1095,7 @@ local function triggerWeaponBox()
             return false
         end
         if not boxOpened() and hasRemoteFire() then
-            if tick()%8<0.6 then print("[Buy] Tir distant sans effet, essai hold direct") end
+            if tick()%8<0.6 then print("[Buy] Remote fire had no effect, trying direct hold") end
             firePromptLegacy(prompt)
             task.wait(0.35)
             if isRobuxPopupVisible() then
@@ -1107,8 +1107,8 @@ local function triggerWeaponBox()
             end
         end
     end
-    -- PHASE 2 : arme proposée → ACHAT (abordable) ou JET (trop chère, libère la box)
-    -- (si l'ouverture a directement débité, c'était un achat direct : pas besoin des boutons)
+    -- PHASE 2: offered weapon → BUY (affordable) or DISCARD (too expensive, frees box)
+    -- (if opening directly charged, it was a direct purchase: no buttons needed)
     local openBought = boxOpened()
     local rw = findRolledWeapon(plot)
     if not rw then
@@ -1120,25 +1120,25 @@ local function triggerWeaponBox()
             Config.PlaceAttempts = 0
             Config.LastTooExpensivePrice = nil
             Config.LastTooExpensiveT = nil
-            if tick()%5<0.6 then print("[Buy] Achat confirmé à l'ouverture — placement à faire") end
+            if tick()%5<0.6 then print("[Buy] Purchase confirmed on opening - placement needed") end
             buyDump()
             return true
         end
         return false
     end
-    -- Témoin : l'instance proposée change-t-elle ? (non = DISCARD inefficace, box bloquée)
-    -- + détecteur "nouveau roll" INFALLIBLE : 2 rolls identiques d'affilée ou roll illisible ("?")
-    -- ont la même sig, mais JAMAIS la même instance → la pause vitrine ne saute plus.
+    -- Witness: does offered instance change? (no = DISCARD ineffective, box stuck)
+    -- + INFALLIBLE "new roll" detector: 2 identical consecutive rolls or unreadable roll ("?")
+    -- have same sig, but NEVER same instance → showcase pause no longer skipped.
     local isNewInst = (Config.LastRolledInst ~= rw)
     if isNewInst then
         Config.LastRolledInst = rw
         if tick() - (Config.LastNewRollLog or 0) > 3 then
             Config.LastNewRollLog = tick()
-            print("[Buy] Nouvelle proposition:", tostring(pendingWeaponName() or "?"))
+            print("[Buy] New offer:", tostring(pendingWeaponName() or "?"))
         end
     end
-    -- PRIX OFFICIEL : attribut Cost de l'arme rollée (source du jeu, prioritaire sur l'UI),
-    -- sinon re-lecture UI (l'UI se met à jour en 0.1s via le script du jeu)
+    -- OFFICIAL PRICE: Cost attribute of rolled weapon (game source, priority over UI),
+    -- otherwise re-read UI (UI updates in 0.1s via game script)
     pcall(function()
         local c = rw:GetAttribute("Cost")
         if typeof(c) == "number" and c > 0 then buyPrice = c end
@@ -1148,10 +1148,10 @@ local function triggerWeaponBox()
         if pu then buyPrice = pu end
     end
     if buyPrice then Config.LastBoxPrice = buyPrice end
-    -- Prix encore inconnu ? On ATTEND, on ne tire JAMAIS à l'aveugle (= popup Robux).
-    -- Fail-closed permanent : aucun "on tente quand même", même après 3s.
+    -- Price still unknown? We WAIT, we NEVER fire blindly (= Robux popup).
+    -- Permanent fail-closed: no "let's try anyway", even after 3s.
     if typeof(buyPrice) ~= "number" or buyPrice <= 0 then
-        if tick()%5<0.6 then print("[Buy] Prix inconnu, attente (anti-popup Robux)...") end
+        if tick()%5<0.6 then print("[Buy] Unknown price, waiting (anti-Robux popup)...") end
         return false
     else
         Config.PriceUnknownSig = nil
@@ -1188,45 +1188,45 @@ local function triggerWeaponBox()
         end)
     end
     readNames()
-    -- PAUSE VITRINE : laisse l'animation/le visuel se jouer AVANT de décider (sinon invisible).
-    -- Une seule fois par roll : nouvelle instance OU nouveau contenu (même arme 2x d'affilée = 2 pauses).
-    -- Réglable : slider "Pause voir roll" (clique la valeur pour taper un nombre exact).
+    -- SHOWCASE PAUSE: let animation/visual play BEFORE deciding (otherwise invisible).
+    -- Once per roll: new instance OR new content (same weapon 2x in a row = 2 pauses).
+    -- Adjustable: "View roll pause" slider (click value to type exact number).
     do
         local rsig = tostring(rolledStableKey(rw) or "?")
         local isNew = isNewInst or (Config.LastPreviewSig ~= rsig)
         if isNew then
             Config.LastPreviewSig = rsig
             local pause = math.clamp(tonumber(Config.BuyPause) or 2, 0.5, 5) -- 0.5s = rapide ("?" possibles), 2s = noms fiables
-            print("[Buy] Vitrine: pause " .. tostring(pause) .. "s (" .. string.sub(rsig, 1, 60) .. ")")
+            print("[Buy] Showcase: pause " .. tostring(pause) .. "s (" .. string.sub(rsig, 1, 60) .. ")")
             task.wait(pause)
         end
-        readNames() -- TOUJOURS frais (pas seulement au 1er aperçu) : sinon "?" figé
+        readNames() -- ALWAYS fresh (not only on first preview): otherwise "?" stuck
         if unitName then
-            -- mémorise le dernier roll NOMMÉ (nom + prix + heure)
+            -- memorize last NAMED roll (name + price + time)
             Config.LastKnownName, Config.LastKnownTier, Config.LastKnownPrice, Config.LastKnownT = unitName, unitTier, buyPrice, tick()
         elseif buyPrice and buyPrice == Config.LastKnownPrice and (tick() - (Config.LastKnownT or 99)) < 15 then
-            -- le jeu remplace le modèle par une copie SANS billboard juste avant/après l'achat
-            -- (même prix = même arme) : reprend le nom au lieu d'afficher "+ ?"
+            -- game replaces model with a copy WITHOUT billboard just before/after purchase
+            -- (same price = same weapon): reuse name instead of showing "+ ?"
             unitName, unitTier = Config.LastKnownName, Config.LastKnownTier
         end
         if isNew then
-            print("[Buy] Roll: " .. tostring(unitName or "?") .. " | tier: " .. tostring(unitTier or "?") .. " | prix: " .. (buyPrice and fmt(buyPrice) or "?"))
+            print("[Buy] Roll: " .. tostring(unitName or "?") .. " | tier: " .. tostring(unitTier or "?") .. " | price: " .. (buyPrice and fmt(buyPrice) or "?"))
         end
     end
     local cash = 0
     pcall(function() cash = getPlayerCash() end)
     local rbuy, rdisc = getBoxRemotes()
-    -- ANTI-POPUP : cash inconnu => on attend, on ne touche à rien (ni achat, ni discard).
+    -- ANTI-POPUP: unknown cash => we wait, touch nothing (neither buy nor discard).
     if typeof(cash) ~= "number" or cash <= 0 then
-        if tick()%5<0.6 then print("[Buy] Cash inconnu, attente (anti-popup Robux)...") end
+        if tick()%5<0.6 then print("[Buy] Unknown cash, waiting (anti-Robux popup)...") end
         return false
     end
     if cash < buyPrice then
         if not Config.WasPricedOut then
             Config.WasPricedOut = true
-            notify("Buy", "Trop cher (" .. fmt(buyPrice) .. " > " .. fmt(cash) .. ") — jeté, suivant")
+            notify("Buy", "Too expensive (" .. fmt(buyPrice) .. " > " .. fmt(cash) .. ") - discarded, next")
         end
-        if tick()%5<0.6 then print("[Buy] Trop cher, DISCARD — prix:", fmt(buyPrice), "| cash:", fmt(cash)) end
+        if tick()%5<0.6 then print("[Buy] Too expensive, DISCARD - price:", fmt(buyPrice), "| cash:", fmt(cash)) end
         if rdisc then
             if (tick() - (Config.LastDiscardFireT or 0)) > 1 then
                 Config.LastDiscardFireT = tick()
@@ -1248,20 +1248,20 @@ local function triggerWeaponBox()
             Config.SkippedCount += 1
         end
         Config.LastBoxAction = "x " .. tostring(unitName or "?") .. " (" .. fmt(buyPrice) .. ")"
-        if tick()%8<0.6 then print("[Buy] x Jeté:", tostring(unitName or "?"), tostring(unitTier or ""), "(" .. fmt(buyPrice) .. " trop cher)") end
-        -- mémorise le prix refusé : l'estimation d'ouverture est souvent STALE juste
-        -- après un discard (UI pas à jour) → bloque toute réouverture tant que
-        -- cash < prix refusé (sinon boucle open → popup Robux → discard → open...).
+        if tick()%8<0.6 then print("[Buy] x Discarded:", tostring(unitName or "?"), tostring(unitTier or ""), "(" .. fmt(buyPrice) .. " too expensive)") end
+        -- memorize refused price: open estimate is often STALE just
+        -- after a discard (UI not updated) → block any reopen while
+        -- cash < refused price (otherwise loop open → Robux popup → discard → open...).
         Config.LastTooExpensivePrice = buyPrice
         Config.LastTooExpensiveT = tick()
         return false
     end
     Config.WasPricedOut = false
-    -- ANTI-POPUP : re-vérification ULTIME à l'instant T (anti race-condition avec
-    -- l'upgrade parallèle qui peut avoir dépensé entre-temps). Aucun wait entre
-    -- ce check et le FireServer qui suit.
+    -- ANTI-POPUP: FINAL re-check at instant T (anti race-condition with
+    -- parallel upgrade that may have spent in between). No wait between
+    -- this check and following FireServer.
     if not canAffordNow(buyPrice) then
-        if tick()%5<0.6 then print("[Buy] Fonds insuffisants à l'instant T, achat annulé (anti-popup)") end
+        if tick()%5<0.6 then print("[Buy] Insufficient funds at instant T, purchase cancelled (anti-popup)") end
         local freshCash = 0
         pcall(function() freshCash = getPlayerCash() end)
         if typeof(freshCash) == "number" and freshCash > 0 and freshCash < buyPrice then
@@ -1271,7 +1271,7 @@ local function triggerWeaponBox()
         if isRobuxPopupVisible() then closeRobuxPopup() Config.LastPopupT = tick() end
         return false
     end
-    -- ACHAT DIRECT SERVEUR (prioritaire : infaillible, pas de GUI requise)
+    -- DIRECT SERVER PURCHASE (priority: infallible, no GUI required)
     if rbuy then
         if tick()%8<0.6 then print("[Buy] FireServer WeaponBoxBuy") end
         local cashB = getPlayerCash()
@@ -1279,7 +1279,7 @@ local function triggerWeaponBox()
         pcall(function() rbuy:FireServer() end)
         task.wait(0.4)
         if isRobuxPopupVisible() then
-            print("[Buy] Popup Robux détecté après tentative d'achat → fermeture + mémorisation prix")
+            print("[Buy] Robux popup detected after purchase attempt → closing + memorizing price")
             closeRobuxPopup()
             Config.LastPopupT = tick()
             Config.LastTooExpensivePrice = buyPrice
@@ -1289,7 +1289,7 @@ local function triggerWeaponBox()
         local boughtOk = false
         pcall(function()
             if getPlayerCash() < cashB then boughtOk = true end
-            -- overhead NOUVEL UNIQUEMENT (un overhead déjà présent ne prouve rien)
+            -- overhead NEW ONLY (an already present overhead proves nothing)
             local ohNow = findOverheadWeapon()
             if ohNow and (not ohPre or ohNow ~= ohPre) then boughtOk = true end
         end)
@@ -1299,18 +1299,18 @@ local function triggerWeaponBox()
             Config.PlaceAttempts = 0
             Config.LastTooExpensivePrice = nil
             Config.LastTooExpensiveT = nil
-            if tick()%5<0.6 then print("[Buy] Achat confirmé — placement à faire") end
+            if tick()%5<0.6 then print("[Buy] Purchase confirmed - placement needed") end
             print("[Buy] + " .. tostring(unitName or "?") .. " " .. tostring(unitTier or "") .. " (" .. (buyPrice and fmt(buyPrice) or "?") .. ")")
             Config.LastBoxAction = "+ " .. tostring(unitName or "?") .. " (" .. (buyPrice and fmt(buyPrice) or "?") .. ")"
             buyDump()
             return true
         end
     end
-    -- fallback : bouton GUI (seulement si le remote est absent : évite doubles achats + flicker menu)
+    -- fallback: GUI button (only if remote is absent: avoids double purchases + menu flicker)
     if not rbuy then
-        -- même garde ultime avant tout clic d'achat
+        -- same final guard before any purchase click
         if not canAffordNow(buyPrice) then
-            if tick()%5<0.6 then print("[Buy] Fonds insuffisants à l'instant T, clic Buy annulé (anti-popup)") end
+            if tick()%5<0.6 then print("[Buy] Insufficient funds at instant T, Buy click cancelled (anti-popup)") end
             if isRobuxPopupVisible() then closeRobuxPopup() Config.LastPopupT = tick() end
             return false
         end
@@ -1324,7 +1324,7 @@ local function triggerWeaponBox()
             local boughtOk = false
             pcall(function()
                 if getPlayerCash() < cashB then boughtOk = true end
-                -- overhead NOUVEL UNIQUEMENT (un overhead déjà présent ne prouve rien)
+                -- overhead NEW ONLY (an already present overhead proves nothing)
                 local ohNow = findOverheadWeapon()
                 if ohNow and (not ohPre or ohNow ~= ohPre) then boughtOk = true end
             end)
@@ -1334,26 +1334,26 @@ local function triggerWeaponBox()
                 Config.PlaceAttempts = 0
                 Config.LastTooExpensivePrice = nil
                 Config.LastTooExpensiveT = nil
-                if tick()%5<0.6 then print("[Buy] Achat confirmé — placement à faire") end
+                if tick()%5<0.6 then print("[Buy] Purchase confirmed - placement needed") end
                 print("[Buy] + " .. tostring(unitName or "?") .. " " .. tostring(unitTier or "") .. " (" .. (buyPrice and fmt(buyPrice) or "?") .. ")")
                 Config.LastBoxAction = "+ " .. tostring(unitName or "?") .. " (" .. (buyPrice and fmt(buyPrice) or "?") .. ")"
                 buyDump()
                 return true
             end
         elseif tick()%8<0.6 then
-            print("[Buy] Ni remote ni BuyButton trouvés")
+            print("[Buy] Neither remote nor BuyButton found")
         end
     end
-    -- dernier recours : prompt interne de l'arme (1x/3s)
-    -- ANTI-POPUP : jamais de claim si trop cher / prix ou cash inconnu.
+    -- last resort: weapon's internal prompt (1x/3s)
+    -- ANTI-POPUP: never claim if too expensive / price or cash unknown.
     if (tick() - (Config.LastClaimT or 0)) > 3 then
         if not canAffordNow(buyPrice) then
-            if tick()%8<0.6 then print("[Buy] Claim annulé (trop cher ou prix/cash inconnu, anti-popup)") end
+            if tick()%8<0.6 then print("[Buy] Claim cancelled (too expensive or price/cash unknown, anti-popup)") end
         else
             Config.LastClaimT = tick()
             local claim = rw:FindFirstChild("WeaponProxPrompt", true)
             if claim and claim:IsA("ProximityPrompt") then
-                print("[Buy] Claim arme rollée (dernier recours)")
+                print("[Buy] Claim rolled weapon (last resort)")
                 firePrompt(claim)
                 task.wait(0.3)
                 if isRobuxPopupVisible() then
@@ -1369,13 +1369,13 @@ local function triggerWeaponBox()
 end
 local function buyWeaponBox() return triggerWeaponBox() end
 
--- Slots RÉELS du jeu : parts "WeaponBasePart" (parents des 42 WeaponProxPrompt).
--- Il n'y a PAS de dossier "Slots" dans ce jeu (vu au diagnostic : Folder Build/Units + WeaponBasePart).
+-- REAL game slots: parts "WeaponBasePart" (parents of 42 WeaponProxPrompt).
+-- There is NO "Slots" folder in this game (seen in diagnostic: Folder Build/Units + WeaponBasePart).
 local function findWeaponSlots(plot)
     if not plot then return {} end
     local list, seen = {}, {}
     for _, d in ipairs(plot:GetDescendants()) do
-        -- EXCLUT le contenu de la caisse (RolledWeapon/WeaponBasePart interne piégeait le finder)
+        -- EXCLUDE box content (internal RolledWeapon/WeaponBasePart trapped the finder)
         if d:FindFirstAncestor("WeaponBox") or d:FindFirstAncestor("RolledWeapon") then continue end
         if d.Name == "WeaponBasePart" and (d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("UnionOperation")) then
             if not seen[d] then seen[d] = true table.insert(list, d) end
@@ -1390,8 +1390,8 @@ local function findWeaponSlots(plot)
     return list
 end
 
--- Heuristique occupé/vide : attributs, texte du prompt (Place vs Upgrade),
--- enfants (les unités posées peuvent être des Model/ValueBase)
+-- Occupied/empty heuristic: attributes, prompt text (Place vs Upgrade),
+-- children (placed units can be Model/ValueBase)
 local function slotHasWeapon(slot)
     if slot:GetAttribute("Occupied") == true or slot:GetAttribute("HasWeapon") == true then return true end
     if slot:GetAttribute("UnitId") ~= nil or slot:GetAttribute("WeaponId") ~= nil or slot:GetAttribute("Unit") ~= nil then return true end
@@ -1402,7 +1402,7 @@ local function slotHasWeapon(slot)
             if n:find("weapon") or n:find("gun") or n:find("unit") or n:find("tower") then return true end
         end
     end
-    -- les unités posées vivent parfois dans Folder Units : le texte du prompt trahit l'état
+    -- placed units sometimes live in Folder Units: prompt text betrays state
     local pr = slot:FindFirstChildOfClass("ProximityPrompt")
     if pr then
         local at = ((pr.ActionText or "") .. " " .. (pr.ObjectText or "")):lower()
@@ -1412,16 +1412,16 @@ local function slotHasWeapon(slot)
 end
 
 local function findSlots(plot)
-    -- OBSOLÈTE : ce jeu n'a pas de dossier "Slots" (voir findWeaponSlots).
-    -- Gardé pour compat : retourne nil.
+    -- OBSOLETE: this game has no "Slots" folder (see findWeaponSlots).
+    -- Kept for compat: returns nil.
     return nil
 end
 
--- Arme rollée en attente DANS la caisse (Model WeaponBox/RolledWeapon).
--- C'est LE pending officiel : tant qu'elle est là, la caisse peut refuser de rouvrir.
+-- Rolled weapon pending INSIDE the box (Model WeaponBox/RolledWeapon).
+-- This is THE official pending: as long as it's there, box may refuse to reopen.
 findRolledWeapon = function(plot)
-    -- Plusieurs RolledWeapon peuvent coexister (template vide + vraie rollée) :
-    -- on prend la plus COMPLÈTE (attributs > enfants > dans la WeaponBox)
+    -- Multiple RolledWeapon can coexist (empty template + real rolled):
+    -- we take the most COMPLETE (attributes > children > inside WeaponBox)
     if not plot then return nil end
     local best, bestScore = nil, -1
     pcall(function()
@@ -1440,15 +1440,15 @@ findRolledWeapon = function(plot)
     end)
     return best
 end
--- Nettoie le rich-text des billboards ("<font ...>Epic</font>" -> "Epic")
+-- Clean billboard rich-text ("<font ...>Epic</font>" -> "Epic")
 stripRich = function(s)
     if typeof(s) ~= "string" then return "" end
     s = s:gsub("<[^>]+>", "")
     s = s:gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
     return s
 end
--- Clé STABLE de l'arme (noms/raretés/prix uniquement — pas de DPS/XP/level/cibles qui changent).
--- Sert aux signatures, à la mémoire des slots et aux compteurs (anti doublons/boucles).
+-- STABLE weapon key (names/rarities/price only - not DPS/XP/level/targets that change).
+-- Used for signatures, slot memory and counters (anti-duplicates/loops).
 rolledStableKey = function(rw)
     if not rw then return nil end
     local parts = {}
@@ -1478,7 +1478,7 @@ rolledStableKey = function(rw)
     if #parts == 0 then return nil end
     return table.concat(parts, "|")
 end
--- Identité de l'arme rollée : attributs + noms d'enfants + textes des billboards
+-- Rolled weapon identity : attributs + noms d'enfants + textes des billboards
 rolledIdentity = function(rw)
     if not rw then return nil end
     local parts = {rw.Name}
@@ -1497,7 +1497,7 @@ rolledIdentity = function(rw)
     return table.concat(parts, " | ")
 end
 
--- Signature de l'arme en attente (change à chaque nouvelle arme / shiny / electric / cosmic)
+-- Pending weapon signature (change à chaque nouvelle arme / shiny / electric / cosmic)
 getPendingSignature = function()
     local plot0 = getPlot()
     if plot0 then
@@ -1559,10 +1559,10 @@ findPendingObject = function()
     end
     return nil
 end
--- Visuel d'arme AU-DESSUS DE LA TÊTE : Model/Tool en enfant direct du perso
--- (un perso normal n'a que Parts/Accessoires/Humanoid en direct),
--- sinon Model flottant juste au-dessus du joueur dans le Workspace
--- Parties du corps standard (à ignorer dans la détection du visuel d'arme)
+-- Weapon visual ABOVE DE LA TÊTE : Model/Tool en enfant direct du perso
+-- (a normal character only has Parts/Accessories/Humanoid directly),
+-- otherwise Model floating just above player in Workspace
+-- Standard body parts (to ignore in weapon visual detection)
 local _stdBody = {head=true, torso=true, uppertorso=true, lowertorso=true, humanoidrootpart=true, ["left arm"]=true, ["right arm"]=true, ["left leg"]=true, ["right leg"]=true, leftupperarm=true, leftlowerarm=true, lefthand=true, rightupperarm=true, rightlowerarm=true, righthand=true, leftupperleg=true, leftlowerleg=true, leftfoot=true, rightupperleg=true, rightlowerleg=true, rightfoot=true, humanoid=true, bodycolors=true, shirt=true, pants=true, shirtgraphic=true}
 local _stdClass = {Script=true, LocalScript=true, ModuleScript=true, Accessory=true, Shirt=true, Pants=true, BodyColors=true, CharacterMesh=true, Humanoid=true, HumanoidDescription=true, Animator=true, Folder=true}
 local _coinLike = {coin=true, loot=true, drop=true, cash=true, money=true, orb=true, currency=true}
@@ -1645,7 +1645,7 @@ pendingWeaponName = function()
     return nil
 end
 
--- Identité textuelle d'un slot (nom, attributs, enfants, textes du prompt)
+-- Textual identity of a slot (nom, attributs, enfants, textes du prompt)
 local function slotIdentityText(slot)
     local parts = {slot.Name}
     pcall(function()
@@ -1659,8 +1659,8 @@ local function slotIdentityText(slot)
     end
     return table.concat(parts, " "):lower()
 end
--- Mots de rareté : la VARIANTE (shiny/electric/cosmic) ne définit pas le slot, le TYPE d'arme oui.
--- On matche d'abord nom complet, puis sans les mots de rareté.
+-- Rarity words : la VARIANTE (shiny/electric/cosmic) ne définit pas le slot, le TYPE d'arme oui.
+-- We match full name first, puis sans les mots de rareté.
 local _rarityStop = {shiny=true, electric=true, elektrik=true, cosmic=true, golden=true, gold=true, diamond=true, rainbow=true, dark=true, normal=true, common=true, rare=true, epic=true, legendary=true}
 local function weaponTokens(name, stripRarity)
     local toks = {}
@@ -1671,7 +1671,7 @@ local function weaponTokens(name, stripRarity)
     end
     return toks
 end
--- Retourne LE slot correspondant à l'arme (ou nil si aucun match)
+-- Return THE slot corresponding à l'arme (ou nil si aucun match)
 local function findSlotForWeapon(slots, weaponName)
     if not weaponName or weaponName == "" then return nil end
     for _, strip in ipairs({false, true}) do
@@ -1692,8 +1692,8 @@ local function findSlotForWeapon(slots, weaponName)
     return nil
 end
 
--- Mémoire apprise : clé arme -> index du slot (tableau findWeaponSlots trié).
--- Apprise UNIQUEMENT sur placement vérifié (pending parti ou nouvelle Unit).
+-- Learned memory : clé arme -> index du slot (tableau findWeaponSlots trié).
+-- Learned ONLY sur placement vérifié (pending parti ou nouvelle Unit).
 local WeaponSlotMemory = {}
 local function weaponKeys(name)
     if not name or name == "" then return nil, nil end
@@ -1713,7 +1713,7 @@ local function recallSlot(name)
     if typeKey and WeaponSlotMemory[typeKey] then return WeaponSlotMemory[typeKey] end
     return nil
 end
--- Snapshot des Unit posées (Folder Units : Unit1..Unit42) : une NOUVELLE Unit = placement vérifié
+-- Snapshot of placed Units (Folder Units : Unit1..Unit42) : une NOUVELLE Unit = placement vérifié
 local function unitsSet(plot)
     local set = {}
     pcall(function()
@@ -1730,46 +1730,46 @@ local function placeWeapon()
     if not plot then
         return false
     end
-    -- Slots = les WeaponBasePart du plot (42 au diagnostic)
+    -- Slots = WeaponBasePart of plot (42 in diagnostic)
     local slots = findWeaponSlots(plot)
     if #slots == 0 then
         if Config.PlacedCount==0 and tick()%5<0.6 then print("[Place] Aucun WeaponBasePart trouvé dans", plot.Name) end
         return false
     end
-    -- ON NE PLACE QUE SUR NOUVELLE ARME CONFIRMÉE (nouvelle, shiny, electric, cosmic...) :
-    -- NeedPlace est armé uniquement quand le buy a baissé le cash / fait apparaître un pending.
-    -- Sans ça, le place restait à spammer les slots en boucle pour rien.
+    -- WE ONLY PLACE ON CONFIRMED NEW WEAPON (new, shiny, electric, cosmic...):
+    -- NeedPlace is armed only when buy decreased cash / made pending appear.
+    -- Without this, place would keep spamming slots in loop for nothing.
     local pendSig = getPendingSignature()
     if pendSig and pendSig ~= Config.LastPlacedSig then
         Config.NeedPlace = true
-        -- reset des essais UNIQUEMENT sur NOUVELLE arme (sinon reset à chaque cycle = boucle infinie invisible)
+        -- reset attempts ONLY on NEW weapon (otherwise reset every cycle = invisible infinite loop)
         if pendSig ~= Config.LastAttemptSig then
             Config.LastAttemptSig = pendSig
             Config.PlaceAttempts = 0
-            print("[Place] Nouvelle arme à placer:", pendSig)
+            print("[Place] New weapon to place:", pendSig)
         end
     end
-    -- réessai lent après abandon (couvre les slots au fil du temps, sans spam)
+    -- slow retry after abandon (covers slots over time, without spam)
     if not Config.NeedPlace and pendSig and pendSig ~= Config.LastPlacedSig then
         if (tick() - (Config.LastAbandonT or 0)) > 15 then
             Config.NeedPlace = true
-            if tick()%8<0.6 then print("[Place] Nouvel essai (lent) pour:", pendSig) end
+            if tick()%8<0.6 then print("[Place] New attempt (slow) for:", pendSig) end
         end
     end
     if not Config.NeedPlace then
         return false
     end
-    -- plafond d'essais : pause 15s entre les séries (pas de spam sur slot récalcitrant)
+    -- attempt cap: 15s pause between series (no spam on stubborn slot)
     if (Config.PlaceAttempts or 0) >= 4 then
         if (tick() - (Config.LastAbandonT or 0)) > 15 then
             Config.PlaceAttempts = 0
-            if tick()%8<0.6 then print("[Place] Nouvelle série d'essais pour:", tostring(pendSig)) end
+            if tick()%8<0.6 then print("[Place] New series of attempts for:", tostring(pendSig)) end
         else
             return false
         end
     end
-    -- LE SLOT DOIT CORRESPONDRE À L'ARME RÉCUPÉRÉE (jamais de tour des plots) :
-    -- 1) mémoire apprise  2) correspondance par nom  3) découverte bornée SANS TP (tir à distance)
+    -- SLOT MUST MATCH RETRIEVED WEAPON (never tour plots):
+    -- 1) learned memory  2) name match  3) bounded discovery WITHOUT TP (remote fire)
     local wname = pendingWeaponName()
     local exactKey, typeKey = weaponKeys(wname)
     local targetSlot, targetIdx, trusted = nil, nil, false
@@ -1777,14 +1777,14 @@ local function placeWeapon()
         local memIdx = recallSlot(wname)
         if memIdx and slots[memIdx] then
             targetSlot, targetIdx, trusted = slots[memIdx], memIdx, true
-            if tick()%8<0.6 then print("[Place] Slot mémorisé pour", wname, "-> #", memIdx) end
+            if tick()%8<0.6 then print("[Place] Memorized slot for", wname, "-> #", memIdx) end
         else
             local matched = findSlotForWeapon(slots, wname)
             if matched then
                 for i, s in ipairs(slots) do if s == matched then targetIdx = i break end end
                 if slotHasWeapon(matched) then
-                    -- arme déjà posée sur son slot → skip, pas de doublon
-                    if tick()%5<0.6 then print("[Place] Arme déjà posée, skip:", wname) end
+                    -- weapon already placed on its slot → skip, no duplicate
+                    if tick()%5<0.6 then print("[Place] Weapon already placed, skip:", wname) end
                     if exactKey then WeaponSlotMemory[exactKey] = targetIdx end
                     Config.LastPlacedSig = pendSig
                     Config.NeedPlace = false
@@ -1796,8 +1796,8 @@ local function placeWeapon()
         end
     end
     if not targetSlot then
-        -- découverte : UN slot à la fois, en rotation. Préfère les prompts ACTIVÉS.
-        -- (le serveur valide la distance : tir distant seul = rejeté, TP obligatoire)
+        -- discovery: ONE slot at a time, rotating. Prefer ENABLED prompts.
+        -- (server validates distance: remote fire alone = rejected, TP required)
         local startIdx = (Config.PlaceIndex or 0) % #slots + 1
         for i = 0, #slots - 1 do
             local idx = (startIdx - 1 + i) % #slots + 1
@@ -1811,11 +1811,11 @@ local function placeWeapon()
             end
         end
         if not targetSlot then
-            if tick()%8<0.6 then print("[Place] Aucun slot vide (", #slots, " tous occupés)") end
+            if tick()%8<0.6 then print("[Place] No empty slot (", #slots, " all occupied)") end
             return false
         end
         Config.PlaceIndex = targetIdx
-        if tick()%8<0.6 then print("[Place] Découverte AVEC TP pour", tostring(wname), "-> slot #", targetIdx) end
+        if tick()%8<0.6 then print("[Place] Discovery WITH TP for", tostring(wname), "-> slot #", targetIdx) end
     end
     local slotPart = nil
     pcall(function()
@@ -1825,8 +1825,8 @@ local function placeWeapon()
             slotPart = targetSlot:FindFirstChildWhichIsA("BasePart", true) or targetSlot:FindFirstChildWhichIsA("MeshPart", true)
         end
     end)
-    do -- TP systématique (trusted ou découverte) : le serveur valide la distance, tir distant = rejeté
-        -- UN SEUL TP vers LE slot correspondant (jamais de tour des plots)
+    do -- Systematic TP (trusted or discovery): server validates distance, remote fire = rejected
+        -- SINGLE TP to THE matching slot (never tour plots)
         if slotPart and RootPart then
             local offset = slotPart.Size.Y / 2 + 1.5
             RootPart.CFrame = slotPart.CFrame + Vector3.new(0, offset, 0)
@@ -1834,13 +1834,13 @@ local function placeWeapon()
         elseif RootPart then
             pcall(function() RootPart.CFrame = CFrame.new(targetSlot:GetPivot().Position + Vector3.new(0,2,0)) end)
         else
-            if tick()%5<0.6 then print("[Place] RootPart introuvable — TP impossible") end
+            if tick()%5<0.6 then print("[Place] RootPart not found - TP impossible") end
             return false
         end
         task.wait(math.max(Config.PlaceDelay, 0.3))
     end
-    -- (le tir suit juste après, à portée)
-    -- le slot EST la part : son prompt direct est le WeaponProxPrompt
+    -- (fire follows right after, within range)
+    -- slot IS the part: its direct prompt is WeaponProxPrompt
     local prompt = nil
     prompt = targetSlot:FindFirstChildOfClass("ProximityPrompt")
     if not prompt then prompt = findPrompt(targetSlot, {"WeaponProx","Place","Slot","Build","Set","Equip"}) end
@@ -1848,13 +1848,13 @@ local function placeWeapon()
         for _, d in ipairs(targetSlot:GetDescendants()) do if d:IsA("ProximityPrompt") then prompt=d break end end
     end
     if not prompt then
-        -- fallback ClickDetector dans le slot (certains jeux n'utilisent pas de ProximityPrompt)
+        -- fallback ClickDetector in slot (some games don't use ProximityPrompt)
         for _, d in ipairs(targetSlot:GetDescendants()) do
             if d:IsA("ClickDetector") then
                 if fireClick(d) then Config.PlacedCount += 1 return true end
             end
         end
-        if Config.PlacedCount==0 then print("[Place] Pas de ProximityPrompt dans slot", targetSlot.Name) end
+        if Config.PlacedCount==0 then print("[Place] No ProximityPrompt in slot", targetSlot.Name) end
         return false
     end
     do
@@ -1870,10 +1870,10 @@ local function placeWeapon()
     local unitsBefore = unitsSet(plot)
     local ok = firePrompt(prompt)
     if not ok then
-        if tick()%8<0.6 then print("[Place] firePrompt échoué sur", prompt.Name, "| Enabled:", tostring(prompt.Enabled), "| Hold:", tostring(prompt.HoldDuration), "| MaxDist:", tostring(prompt.MaxActivationDistance)) end
+        if tick()%8<0.6 then print("[Place] firePrompt failed on", prompt.Name, "| Enabled:", tostring(prompt.Enabled), "| Hold:", tostring(prompt.HoldDuration), "| MaxDist:", tostring(prompt.MaxActivationDistance)) end
         return false
     end
-    -- vérifié : pending parti OU nouvelle Unit apparue → on APPREND la correspondance arme->slot
+    -- verified: pending gone OR new Unit appeared → we LEARN weapon->slot mapping
     task.wait(0.5)
     local placedNow, newUnitName = false, nil
     pcall(function()
@@ -1889,15 +1889,15 @@ local function placeWeapon()
         Config.PlacedCount += 1
         Config.NeedPlace = false
         Config.PlaceAttempts = 0
-        print("[Place] Posée:", tostring(wname), "-> slot #", tostring(targetIdx), newUnitName and ("(Unit: " .. newUnitName .. ")") or "")
+        print("[Place] Placed:", tostring(wname), "-> slot #", tostring(targetIdx), newUnitName and ("(Unit: " .. newUnitName .. ")") or "")
     else
-        -- toujours pas placé : on réessaiera, mais pas à l'infini
+        -- still not placed: we will retry, but not infinitely
         Config.PlaceAttempts = (Config.PlaceAttempts or 0) + 1
         if Config.PlaceAttempts >= 4 then
             Config.NeedPlace = false
             Config.PlaceAttempts = 0
             Config.LastAbandonT = tick()
-            if tick()%5<0.6 then print("[Place] Abandon après 4 essais (serveur refuse) — réessai dans 15s") end
+            if tick()%5<0.6 then print("[Place] Abandoned after 4 attempts (server refused) - retry in 15s") end
         end
     end
     return true
@@ -1908,14 +1908,14 @@ local function upgradeAllWeapons()
     if not plot then return end
     local slots = findWeaponSlots(plot)
     if #slots == 0 then return end
-    -- JAMAIS d'upgrade avec un pending en main (sinon pose au mauvais slot !)
+    -- NEVER upgrade with pending in hand (otherwise places on wrong slot!)
     if getPendingSignature() then
-        if tick()%10<0.6 then print("[Upgrade] En pause (arme en attente de placement)") end
+        if tick()%10<0.6 then print("[Upgrade] Paused (weapon pending placement)") end
         return
     end
-    -- ANTI-POPUP : les upgrades coûtent aussi du cash. Quand les fonds sont
-    -- justes ( cooldown "trop cher" actif ), on garde le cash pour la box
-    -- au lieu de risquer un achat trop cher côté upgrade (= popup Robux).
+    -- ANTI-POPUP: upgrades also cost cash. When funds are
+    -- tight ( "too expensive" cooldown active ), we save cash for box
+    -- instead of risking too-expensive purchase on upgrade side (= Robux popup).
     if isRobuxPopupVisible() then
         closeRobuxPopup()
         Config.LastPopupT = tick()
@@ -1929,7 +1929,7 @@ local function upgradeAllWeapons()
         end
     end
     local n=0
-    -- Le serveur valide la distance : TP à chaque slot (le tir distant est rejeté).
+    -- Server validates distance: TP to each slot (remote fire is rejected).
     for _, slot in ipairs(slots) do
         local prompt = slot:FindFirstChildOfClass("ProximityPrompt")
         if prompt then
@@ -1949,12 +1949,12 @@ local function upgradeAllWeapons()
     end
     if n > 0 then
         Config.UpgradedCount += n
-        if tick()%8<1 then print("[Upgrade] Tiré", n, "prompts sur", #slots, "slots") end
+        if tick()%8<1 then print("[Upgrade] Fired", n, "prompts on", #slots, "slots") end
     end
 end
 
 local function getRebirthRemote()
-    -- Chemin exact vu dans RebirthGuiScript : ReplicatedStorage.RemoteEvents.RebirthButtonPress
+    -- Exact path seen in RebirthGuiScript: ReplicatedStorage.RemoteEvents.RebirthButtonPress
     local folder = ReplicatedStorage:FindFirstChild("RemoteEvents")
     if folder then
         local r = folder:FindFirstChild("RebirthButtonPress")
@@ -1967,13 +1967,13 @@ end
 
 local function doRebirth()
     local waveBefore = getPlayerWave()
-    -- le rebirth reset cash + prix : la mémoire anti-popup ne doit jamais survivre
-    -- au-delà (couvre aussi la voie plot qui ne passe pas par RebirthCount).
-    -- Elle se reconstruira seule au prochain discard si besoin.
+    -- rebirth resets cash + price: anti-popup memory must never survive
+    -- beyond (also covers plot path that doesn't go through RebirthCount).
+    -- It will rebuild itself on next discard if needed.
     Config.LastTooExpensivePrice = nil
     Config.LastTooExpensiveT = nil
-    -- VOIE 1 : direct serveur (source RebirthGuiScript : RebirthButtonPress:FireServer(), sans argument).
-    -- Infaillible : ignore l'état visible/caché du GUI (Frame.Visible=false au départ).
+    -- PATH 1: direct server (source RebirthGuiScript: RebirthButtonPress:FireServer(), no argument).
+    -- Infallible: ignores GUI visible/hidden state (Frame.Visible=false at start).
     local rr = getRebirthRemote()
     if rr then
         if tick()%5<0.6 then print("[Rebirth] FireServer RebirthButtonPress (wave:", waveBefore, ")") end
@@ -1982,21 +1982,21 @@ local function doRebirth()
             task.wait(1.5)
             if getPlayerWave() < waveBefore then
                 Config.RebirthCount += 1
-                -- le cash et les prix reset après un rebirth : purge la mémoire anti-popup
+                -- cash and prices reset after rebirth: purge anti-popup memory
                 Config.LastTooExpensivePrice = nil
                 Config.LastTooExpensiveT = nil
-                notify("Rebirth","Rebirth effectué !")
+                notify("Rebirth","Rebirth completed!")
                 return true
             end
             return true
         end
     elseif tick()%10<0.6 then
-        print("[Rebirth] Remote RebirthButtonPress introuvable")
+        print("[Rebirth] Remote RebirthButtonPress not found")
     end
-    -- VOIE 1 : gros bouton jaune du RebirthGui (constaté en jeu sous les waves)
+    -- PATH 1: big yellow button of RebirthGui (observed in-game under waves)
     local rgui = findRebirthGui()
     if rgui then
-        -- 1) vrais GuiButton avec texte rebirth/prestige/reset
+        -- 1) real GuiButton with text rebirth/prestige/reset
         for _, d in ipairs(rgui:GetDescendants()) do
             if d:IsA("TextButton") or d:IsA("ImageButton") then
                 local t = ""
@@ -2008,10 +2008,10 @@ local function doRebirth()
                         task.wait(1.5)
                             if getPlayerWave() < waveBefore then
                                 Config.RebirthCount += 1
-                                -- le cash et les prix reset après un rebirth : purge la mémoire anti-popup
+                                -- cash and prices reset after rebirth: purge anti-popup memory
                                 Config.LastTooExpensivePrice = nil
                                 Config.LastTooExpensiveT = nil
-                                notify("Rebirth","Rebirth effectué !")
+                                notify("Rebirth","Rebirth completed!")
                                 return true
                             end
                             return true
@@ -2019,7 +2019,7 @@ local function doRebirth()
                 end
             end
         end
-        -- 2) RebirthFrame = simple Frame cliquable via InputBegan (vu dans StarterGui)
+        -- 2) RebirthFrame = simple Frame clickable via InputBegan (seen in StarterGui)
         for _, d in ipairs(rgui:GetDescendants()) do
             local cn = d.Name:lower()
             if (d:IsA("Frame") or d:IsA("ImageLabel")) and cn:find("rebirth") and not cn:find("lock") then
@@ -2028,19 +2028,19 @@ local function doRebirth()
                     task.wait(1.5)
                         if getPlayerWave() < waveBefore then
                             Config.RebirthCount += 1
-                            -- le cash et les prix reset après un rebirth : purge la mémoire anti-popup
+                            -- cash and prices reset after rebirth: purge anti-popup memory
                             Config.LastTooExpensivePrice = nil
                             Config.LastTooExpensiveT = nil
-                            notify("Rebirth","Rebirth effectué !")
+                            notify("Rebirth","Rebirth completed!")
                             return true
                         end
                         return true
                 end
             end
         end
-        if tick()%10<0.6 then print("[Rebirth] Rien de cliquable dans RebirthGui (voir Diagnostic)") end
+        if tick()%10<0.6 then print("[Rebirth] Nothing clickable in RebirthGui (voir Diagnostic)") end
     end
-    -- VOIE 2 : ancien chemin plot (prompt / click)
+    -- PATH 2: old plot path (prompt / click)
     local plot = getPlot()
     if not plot then return false end
     local btn = plot:FindFirstChild("RebirthButtonPress")
@@ -2055,11 +2055,11 @@ local function doRebirth()
         if det then return fireClick(det) end
         return false
     end
-    -- BUG FIX : se TP à portée avant de tirer
+    -- BUG FIX: TP within range before firing
     local part = getPromptPart(prompt)
     if part then gotoPart(part, 2) task.wait(0.25) end
     local ok = firePrompt(prompt)
-    if ok then notify("Rebirth","Rebirth effectué !") end
+    if ok then notify("Rebirth","Rebirth completed!") end
     return ok
 end
 
@@ -2083,7 +2083,7 @@ local function pickupCoins()
         if not container then return end
         for _, c in ipairs(container:GetDescendants()) do
             if c:IsA("BasePart") or c:IsA("MeshPart") or c:IsA("UnionOperation") or c:IsA("TrussPart") then
-                -- BUG FIX : dans LootSpawnedClient, TOUTE part est du loot (même sans "coin" dans le nom)
+                -- BUG FIX: in LootSpawnedClient, EVERY part is loot (even without "coin" in name)
                 if whitelistAll or isCoinLike(c) or isCoinLike(c.Parent) then
                     addCoin(c)
                 end
@@ -2115,7 +2115,7 @@ local function pickupCoins()
             end
         end
     end
-    -- AIMANT : ce sont les pièces qui viennent au joueur (pas de TP du joueur)
+    -- MAGNET: coins come to player (no player TP)
     local root = RootPart
     if not root then return end
     local magnetPos = root.CFrame
@@ -2136,8 +2136,8 @@ local function pickupCoins()
                 if pcd then fireClick(pcd) end
             end
         end)
-        -- téléporte la pièce PILE sur le joueur (pas autour : sinon non ramassées)
-        -- + vitesse annulée + ancrée : sinon elle garde sa vitesse initiale et repart
+        -- teleport coin EXACTLY onto player (not around: otherwise not collected)
+        -- + velocity cancelled + anchored: otherwise it keeps initial velocity and flies away
         pcall(function()
             if cp.Parent then
                 cp.AssemblyLinearVelocity = Vector3.zero
@@ -2258,7 +2258,7 @@ end
 -- ============================================================
 -- GUI BUILD
 -- ============================================================
--- cleanup ancien gui
+-- cleanup old gui
 pcall(function()
     local pg = LocalPlayer:WaitForChild("PlayerGui")
     local old = pg:FindFirstChild("PrismMenu")
@@ -2276,7 +2276,7 @@ make("UIStroke", {Color=T.Primary, Thickness=1.2, Transparency=0.55, Parent=MF})
 -- Title bar (draggable)
 local TitleBar = make("Frame", {Name="TitleBar", Size=UDim2.new(1,0,0,44), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=MF})
 make("UICorner", {CornerRadius=UDim.new(0,16), Parent=TitleBar})
-make("Frame", {Size=UDim2.new(1,0,0,16), Position=UDim2.new(0,0,1,-16), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TitleBar}) -- cache coins
+make("Frame", {Size=UDim2.new(1,0,0,16), Position=UDim2.new(0,0,1,-16), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TitleBar}) -- hide corners
 make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.Primary), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=90, Parent=TitleBar})
 
 make("TextLabel", {Size=UDim2.new(1,-90,0,18), Position=UDim2.new(0,16,0,6), BackgroundTransparency=1, Text="Prism", TextColor3=Color3.fromRGB(255,255,255), TextSize=16, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=TitleBar})
@@ -2284,7 +2284,7 @@ make("TextLabel", {Size=UDim2.new(1,-90,0,12), Position=UDim2.new(0,16,0,24), Ba
 
 local CloseBtn = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,-36,0,8), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.88, Text="×", TextColor3=Color3.fromRGB(80,40,20), TextSize=18, Font=Enum.Font.GothamBold, Parent=TitleBar})
 make("UICorner", {CornerRadius=UDim.new(0,8), Parent=CloseBtn})
-local MinBtn = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,-68,0,8), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.88, Text="—", TextColor3=Color3.fromRGB(80,40,20), TextSize=12, Font=Enum.Font.GothamBold, Parent=TitleBar})
+local MinBtn = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,-68,0,8), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.88, Text="-", TextColor3=Color3.fromRGB(80,40,20), TextSize=12, Font=Enum.Font.GothamBold, Parent=TitleBar})
 make("UICorner", {CornerRadius=UDim.new(0,8), Parent=MinBtn})
 
 -- Stats bar
@@ -2365,7 +2365,7 @@ local function slider(tab, key, label, min, max, step, suffix)
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=row})
     make("TextLabel", {Size=UDim2.new(0.55,0,0,14), Position=UDim2.new(0,12,0,6), BackgroundTransparency=1, Text=label, TextColor3=T.Text, TextSize=11, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
     local val = Config[key]
-    -- valeur éditable au clavier (ex : taper 23 ou 104) + drag slider ; les deux se sync
+    -- editable value via keyboard (e.g. type 23 or 104) + drag slider; both sync
     local valBox = make("TextBox", {Size=UDim2.new(0.4,0,0,14), Position=UDim2.new(0.55,0,0,6), BackgroundTransparency=1, Text=tostring(val)..(suffix or ""), TextColor3=T.Primary, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Right, ClearTextOnFocus=false, Parent=row})
     local track = make("Frame", {Size=UDim2.new(1,-24,0,4), Position=UDim2.new(0,12,0,30), BackgroundColor3=T.Surface2, BorderSizePixel=0, Parent=row})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=track})
@@ -2390,7 +2390,7 @@ local function slider(tab, key, label, min, max, step, suffix)
         Config[key]=stepped
         paint(stepped)
     end
-    -- saisie libre : valeur exacte (clampée, SANS snap au step) pour taper 23, 104, 0.35...
+    -- free input: exact value (clamped, WITHOUT step snap) to type 23, 104, 0.35...
     valBox.FocusLost:Connect(function(enter)
         if not enter then paint(Config[key]) return end
         local num = tonumber(string.match(valBox.Text, "^%s*([%d%.]+)") or "")
@@ -2486,8 +2486,8 @@ end))
 -- BUILD CONTENT
 -- ============================================================
 section("Farm","Auto Farm")
-toggle("Farm","MasterAutoFarm","Master Auto Farm (tout activer)", function(v)
-    notify("Farm", v and "MASTER ON — toutes les farms actives" or "MASTER OFF")
+toggle("Farm","MasterAutoFarm","Master Auto Farm (enable all)", function(v)
+    notify("Farm", v and "MASTER ON - all farms active" or "MASTER OFF")
 end)
 toggle("Farm","AutoBuyAffordable","Auto Buy Weapon Box", function(v) notify("Farm", v and "Auto Buy ON" or "Auto Buy OFF") end)
 toggle("Farm","AutoPlaceUpgrade","Auto Place + Upgrade", function(v)
@@ -2500,23 +2500,23 @@ toggle("Farm","AutoPickupCoins","Auto Pickup Coins", function(v) notify("Farm", 
 
 section("Farm","Delays")
 slider("Farm","PlaceDelay","Place Delay",0.1,3,0.1,"s")
-slider("Farm","BuyPause","Pause voir roll (0.5 rapide / 2 fiable)",0.5,5,0.5,"s")
+slider("Farm","BuyPause","View roll pause (0.5 fast / 2 reliable)",0.5,5,0.5,"s")
 slider("Farm","RebirthWave","Rebirth at Wave",1,200,1,"")
 slider("Farm","RebirthCheckDelay","Rebirth check",0.5,5,0.5,"s")
 
-section("Movement","Vol & Noclip")
+section("Movement","Fly & Noclip")
 toggle("Movement","FlyEnabled","Fly  (WASD + Space/Shift)", function(v) if not v then stopFly() end end)
 slider("Movement","FlySpeed","Fly Speed",10,200,5,"")
 toggle("Movement","NoClipEnabled","NoClip")
 
-section("Movement","Vitesse")
+section("Movement","Speed")
 toggle("Movement","WalkSpeedEnabled","Custom WalkSpeed", function() updateMovement() end)
 slider("Movement","SpeedValue","WalkSpeed",16,200,1,"")
 toggle("Movement","JumpPowerEnabled","Custom JumpPower", function() updateMovement() end)
 slider("Movement","JumpValue","JumpPower",50,300,5,"")
 toggle("Movement","InfiniteJump","Infinite Jump")
 
-section("Player","Utilitaires")
+section("Player","Utilities")
 toggle("Player","AntiAFK","Anti-AFK", function(v) setAntiAFK(v) end)
 
 section("Settings","Theme")
@@ -2527,7 +2527,7 @@ do
     make("TextLabel", {Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,12,0,0), BackgroundTransparency=1, Text="Theme", TextColor3=T.Text, TextSize=11, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
     local b = make("TextButton", {Size=UDim2.new(0,72,0,22), Position=UDim2.new(1,-84,0.5,-11), BackgroundColor3=T.Primary, Text="Claude", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, Parent=row})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=b})
-    b.MouseButton1Click:Connect(function() notify("Theme","Claude — seul thème pour l'instant") end)
+    b.MouseButton1Click:Connect(function() notify("Theme","Claude - only theme for now") end)
     task.defer(tagCanvas)
 end
 
@@ -2541,29 +2541,29 @@ do
     task.defer(tagCanvas)
 end
 
-section("Settings","Détection live")
+section("Settings","Live detection")
 local detectLbl
 do
     local pg = Pages.Settings
     local fr = make("Frame", {Size=UDim2.new(1,0,0,68), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder("Settings"), Parent=pg})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=fr})
     make("UIStroke", {Color=T.Primary, Transparency=0.7, Thickness=1, Parent=fr})
-    detectLbl = make("TextLabel", {Size=UDim2.new(1,-12,1,-8), Position=UDim2.new(0,6,0,4), BackgroundTransparency=1, Text="Plot: ...\nCash: ... | Box: ...\nDernier: —", TextColor3=T.PrimaryLight, TextSize=10, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, Parent=fr})
+    detectLbl = make("TextLabel", {Size=UDim2.new(1,-12,1,-8), Position=UDim2.new(0,6,0,4), BackgroundTransparency=1, Text="Plot: ...\nCash: ... | Box: ...\nLast: -", TextColor3=T.PrimaryLight, TextSize=10, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, Parent=fr})
     task.defer(tagCanvas)
 end
 
 do
     local pg = Pages.Settings
-    local btnRescan = make("TextButton", {Size=UDim2.new(1,0,0,28), BackgroundColor3=T.Primary, Text="↻ Re-scanner Cash/Wave/Plot", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    local btnRescan = make("TextButton", {Size=UDim2.new(1,0,0,28), BackgroundColor3=T.Primary, Text="↻ Rescan Cash/Wave/Plot", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btnRescan})
     btnRescan.MouseButton1Click:Connect(function()
         _cashObj=nil _cashAttrRoot=nil _cashAttrKey=nil _cashUI=nil _triedHeavyCash=false
         _waveObj=nil _waveAttrRoot=nil _waveAttrKey=nil _waveUI=nil _triedHeavyWave=false
         cachedPlot=nil
-        notify("Re-scan","Cache vidé, re-scan en cours…")
+        notify("Rescan","Cache cleared, rescanning…")
         task.wait(0.5)
         local c=getPlayerCash(); local w=getPlayerWave(); local p=getPlot()
-        print("[Re-scan] Cash:",c," Wave:",w," Plot:",p and p.Name or "nil")
+        print("[Rescan] Cash:",c," Wave:",w," Plot:",p and p.Name or "nil")
     end)
     task.defer(tagCanvas)
 end
@@ -2571,7 +2571,7 @@ end
 section("Settings","Diagnostic")
 do
     local pg = Pages.Settings
-    local btn = make("TextButton", {Size=UDim2.new(1,0,0,34), BackgroundColor3=T.Surface2, Text="Lancer diagnostic  (console F9)", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    local btn = make("TextButton", {Size=UDim2.new(1,0,0,34), BackgroundColor3=T.Surface2, Text="Run diagnostic  (console F9)", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btn})
     btn.MouseButton1Click:Connect(function()
         task.spawn(function()
@@ -2671,7 +2671,7 @@ do
             end)
             pcall(dumpCurrencySources)
         end)
-        notify("Diagnostic","Regarde la console (F9)")
+        notify("Diagnostic","Check console (F9)")
     end)
     local btn2 = make("TextButton", {Size=UDim2.new(1,0,0,30), BackgroundColor3=T.Surface, Text="Dump Cash/Wave sources (F9)", TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.Gotham, LayoutOrder=nextOrder("Settings"), Parent=pg})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btn2})
@@ -2702,11 +2702,11 @@ local function unloadScript()
     end
     -- détruit le GUI (ses propres connexions meurent avec lui)
     pcall(function() SG:Destroy() end)
-    print("[Prism] Script déchargé : GUI détruite, boucles stoppées, perso restauré")
+    print("[Prism] Script unloaded: GUI destroyed, loops stopped, character restored")
 end
 do
     local pg = Pages.Settings
-    local un = make("TextButton", {Size=UDim2.new(1,0,0,32), BackgroundColor3=Color3.fromRGB(170,60,60), Text="DÉCHARGER le script (Unload)", TextColor3=Color3.fromRGB(255,255,255), TextSize=12, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    local un = make("TextButton", {Size=UDim2.new(1,0,0,32), BackgroundColor3=Color3.fromRGB(170,60,60), Text="UNLOAD script (Unload)", TextColor3=Color3.fromRGB(255,255,255), TextSize=12, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
     make("UICorner", {CornerRadius=UDim.new(0,8), Parent=un})
     un.MouseButton1Click:Connect(function() unloadScript() end)
     task.defer(tagCanvas)
@@ -2714,12 +2714,12 @@ end
 
 do
     local pg = Pages.Settings
-    make("TextLabel", {Size=UDim2.new(1,0,0,32), BackgroundTransparency=1, Text="Prism v2.1  •  RightShift = menu\nDrag la barre du haut pour déplacer", TextColor3=T.TextFaint, TextSize=10, Font=Enum.Font.Gotham, TextWrapped=true, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("TextLabel", {Size=UDim2.new(1,0,0,32), BackgroundTransparency=1, Text="Prism v2.1  •  RightShift = menu\nDrag top bar to move", TextColor3=T.TextFaint, TextSize=10, Font=Enum.Font.Gotham, TextWrapped=true, LayoutOrder=nextOrder("Settings"), Parent=pg})
     task.defer(tagCanvas)
 end
 
 -- ============================================================
--- HEARTBEAT (léger, 1 seul connect)
+-- HEARTBEAT (lightweight, single connection)
 -- ============================================================
 trackConn(RunService.Heartbeat:Connect(function()
     if Config.Unloaded then return end
@@ -2729,13 +2729,13 @@ trackConn(RunService.Heartbeat:Connect(function()
 end))
 
 -- ============================================================
--- AUTO FARM (1 seul thread)
+-- AUTO FARM (single thread)
 -- ============================================================
 task.spawn(function()
     while not Config.Unloaded do
         pcall(function()
             if Config.MasterAutoFarm then
-                -- MASTER : buy + place + aimant (l'upgrade tourne dans son propre thread lent)
+                -- MASTER: buy + place + magnet (upgrade runs in its own slow thread)
                 buyWeaponBox() task.wait(0.35)
                 placeWeapon() task.wait(Config.PlaceDelay)
                 if not hasRemoteFire() then upgradeAllWeapons() task.wait(0.8) end
@@ -2753,8 +2753,8 @@ task.spawn(function()
     end
 end)
 
--- Upgrade découplé : toutes les 8s dans son propre thread (tir distant, aucun TP),
--- pour ne plus ralentir la boucle buy/place (42 prompts par cycle = ~10s perdus avant)
+-- Decoupled Upgrade: every 8s in own thread (remote fire, no TP),
+-- to no longer slow down buy/place loop (42 prompts per cycle = ~10s lost before)
 task.spawn(function()
     while not Config.Unloaded do
         if (Config.MasterAutoFarm or Config.AutoPlaceUpgrade or Config.AutoUpgrade) and hasRemoteFire() then
@@ -2764,8 +2764,8 @@ task.spawn(function()
     end
 end)
 
--- Watchdog ANTI-POPUP ROBUX : si le popup "Buy Robux and item" apparaît malgré
--- les gardes (ex: race-condition), on le referme aussitôt + on arme le cooldown.
+-- Watchdog ANTI-ROBUX POPUP: if "Buy Robux and item" popup appears despite
+-- guards (e.g. race-condition), we close it immediately + arm cooldown.
 task.spawn(function()
     while not Config.Unloaded do
         pcall(function()
@@ -2779,7 +2779,7 @@ task.spawn(function()
     end
 end)
 
--- Stats bar update (1s, léger)
+-- Stats bar update (1s, lightweight)
 task.spawn(function()
     while not Config.Unloaded do
         pcall(function()
@@ -2795,8 +2795,8 @@ task.spawn(function()
                 local plot = getPlot()
                 local plotName = plot and (plot.Name.." ("..plot.ClassName..")") or "nil"
                 local boxTxt = Config.LastBoxPrice and fmt(Config.LastBoxPrice) or "?"
-                detectLbl.Text = string.format("Plot: %s\nCash: %s | Box: %s\nDernier: %s", plotName, fmt(cash), boxTxt, tostring(Config.LastBoxAction or "—"))
-                -- couleur selon détection
+                detectLbl.Text = string.format("Plot: %s\nCash: %s | Box: %s\nLast: %s", plotName, fmt(cash), boxTxt, tostring(Config.LastBoxAction or "-"))
+                -- color by detection
                 if cash==0 and wave==0 and (not plot) then
                     detectLbl.TextColor3 = Color3.fromRGB(220,80,80)
                 elseif cash==0 or wave==0 then
@@ -2811,22 +2811,22 @@ task.spawn(function()
 end)
 
 -- ============================================================
--- STARTUP - diagnostic léger 1 seule fois
+-- STARTUP - lightweight diagnostic once
 -- ============================================================
-notify("Prism v2.1","Chargé ! RightShift = menu")
-print("[Prism v2.1] Menu: RightShift | Drag title bar | Onglet Farm/Movement/Player/Settings")
+notify("Prism v2.1","Loaded! RightShift = menu")
+print("[Prism v2.1] Menu: RightShift | Drag title bar | Tabs Farm/Movement/Player/Settings")
 task.spawn(function()
     task.wait(2)
     pcall(function()
         local plot = getPlot()
-        print("[Prism] Plot:", plot and (plot.ClassName.." "..plot.Name) or "nil — ouvre Settings > Diagnostic pour détails")
+        print("[Prism] Plot:", plot and (plot.ClassName.." "..plot.Name) or "nil - open Settings > Diagnostic for details")
         if not plot then
-            print("[Prism] Astuce: si Plot=nil, le farm ne peut pas marcher. Lance le diagnostic dans Settings.")
+            print("[Prism] Tip: if Plot=nil, farm cannot work. Run diagnostic in Settings.")
         else
             local n=0 for _, d in ipairs(plot:GetDescendants()) do if d:IsA("ProximityPrompt") then n+=1 end end
-            print("[Prism] Prompts dans le plot:", n)
+            print("[Prism] Prompts in plot:", n)
             print("[Prism] WeaponBasePart:", #findWeaponSlots(plot))
         end
-        print("[Prism] Tir à distance (sans TP):", hasRemoteFire() and "OUI" or "NON")
+        print("[Prism] Remote fire (without TP):", hasRemoteFire() and "OUI" or "NON")
     end)
 end)
