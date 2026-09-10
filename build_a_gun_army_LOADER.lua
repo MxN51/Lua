@@ -1,6 +1,3 @@
--- GUI Work.ink - Build A Gun Army Auto Farm
--- Colle ce script dans ton executor et exécute-le
-
 local LINK = "https://work.ink/2IAE/build-a-gun-army-auto-farm"
 local DESCRIPTION = "Follow this link and the steps to get the Build A Gun Army Auto Farm script. Thanks, have fun!"
 
@@ -221,7 +218,7 @@ end)
 
 -- Copie
 local function notifyCopied()
-    CopiedLabel.Text = "✓ Lien copie ! Colle-le dans ton navigateur"
+    CopiedLabel.Text = "✓ Link Copied ! Paste it in your internet browser"
     CopiedLabel.Visible = true
     task.delay(2.5, function()
         if CopiedLabel then CopiedLabel.Visible = false end
