@@ -2,6 +2,9 @@
     Build a Gun Army v.2.2
 ]]--
 
+--!nonstrict
+-- BaGAS v2.2 (hardened): fail-closed plot, no globals leak, os.clock, modern fly.
+
 -- Services
 print("[Script] booting...")
 local Players = game:GetService("Players")
@@ -110,21 +113,125 @@ local function make(class, props)
 end
 
 -- ============================================================
--- CLAUDE THEME
+-- THEMES (multi-thèmes, interface uniquement)
+-- T reste la référence courante (mêmes clés qu'avant pour compat).
 -- ============================================================
-local T = {
-    BG           = Color3.fromRGB(19,19,21),
-    Surface      = Color3.fromRGB(31,31,34),
-    Surface2     = Color3.fromRGB(43,43,47),
-    Primary      = Color3.fromRGB(214,120,82),
-    PrimaryDark  = Color3.fromRGB(180,100,62),
-    PrimaryLight = Color3.fromRGB(240,155,105),
-    Text         = Color3.fromRGB(235,232,226),
-    TextDim      = Color3.fromRGB(150,146,138),
-    TextFaint    = Color3.fromRGB(110,106,100),
-    Success      = Color3.fromRGB(214,120,82),
-    ToggleOff    = Color3.fromRGB(62,62,66),
+local Themes = {
+    Claude = {
+        BG           = Color3.fromRGB(17, 17, 19),
+        Surface      = Color3.fromRGB(27, 27, 31),
+        Surface2     = Color3.fromRGB(40, 40, 46),
+        Primary      = Color3.fromRGB(214, 120, 82),
+        PrimaryDark  = Color3.fromRGB(178, 96, 60),
+        PrimaryLight = Color3.fromRGB(242, 160, 110),
+        Text         = Color3.fromRGB(236, 233, 227),
+        TextDim      = Color3.fromRGB(158, 153, 144),
+        TextFaint    = Color3.fromRGB(110, 106, 100),
+        Success      = Color3.fromRGB(214, 120, 82),
+        ToggleOff    = Color3.fromRGB(58, 58, 64),
+        Stroke       = Color3.fromRGB(255, 255, 255),
+        Danger       = Color3.fromRGB(198, 72, 72),
+        Dot          = Color3.fromRGB(214, 120, 82),
+    },
+    Midnight = {
+        BG           = Color3.fromRGB(11, 14, 21),
+        Surface      = Color3.fromRGB(18, 24, 37),
+        Surface2     = Color3.fromRGB(28, 36, 54),
+        Primary      = Color3.fromRGB(88, 130, 255),
+        PrimaryDark  = Color3.fromRGB(62, 96, 205),
+        PrimaryLight = Color3.fromRGB(140, 172, 255),
+        Text         = Color3.fromRGB(232, 238, 252),
+        TextDim      = Color3.fromRGB(148, 162, 190),
+        TextFaint    = Color3.fromRGB(100, 112, 136),
+        Success      = Color3.fromRGB(88, 130, 255),
+        ToggleOff    = Color3.fromRGB(48, 56, 76),
+        Stroke       = Color3.fromRGB(255, 255, 255),
+        Danger       = Color3.fromRGB(220, 90, 90),
+        Dot          = Color3.fromRGB(88, 130, 255),
+    },
+    Emerald = {
+        BG           = Color3.fromRGB(10, 17, 14),
+        Surface      = Color3.fromRGB(17, 28, 23),
+        Surface2     = Color3.fromRGB(27, 42, 34),
+        Primary      = Color3.fromRGB(52, 199, 123),
+        PrimaryDark  = Color3.fromRGB(36, 158, 96),
+        PrimaryLight = Color3.fromRGB(110, 225, 165),
+        Text         = Color3.fromRGB(230, 244, 236),
+        TextDim      = Color3.fromRGB(145, 170, 155),
+        TextFaint    = Color3.fromRGB(98, 120, 107),
+        Success      = Color3.fromRGB(52, 199, 123),
+        ToggleOff    = Color3.fromRGB(46, 60, 52),
+        Stroke       = Color3.fromRGB(255, 255, 255),
+        Danger       = Color3.fromRGB(220, 90, 90),
+        Dot          = Color3.fromRGB(52, 199, 123),
+    },
+    Violet = {
+        BG           = Color3.fromRGB(15, 12, 21),
+        Surface      = Color3.fromRGB(24, 20, 34),
+        Surface2     = Color3.fromRGB(36, 30, 52),
+        Primary      = Color3.fromRGB(167, 120, 255),
+        PrimaryDark  = Color3.fromRGB(130, 88, 215),
+        PrimaryLight = Color3.fromRGB(195, 160, 255),
+        Text         = Color3.fromRGB(238, 232, 252),
+        TextDim      = Color3.fromRGB(162, 150, 190),
+        TextFaint    = Color3.fromRGB(112, 102, 136),
+        Success      = Color3.fromRGB(167, 120, 255),
+        ToggleOff    = Color3.fromRGB(56, 50, 76),
+        Stroke       = Color3.fromRGB(255, 255, 255),
+        Danger       = Color3.fromRGB(220, 90, 90),
+        Dot          = Color3.fromRGB(167, 120, 255),
+    },
+    Crimson = {
+        BG           = Color3.fromRGB(18, 11, 12),
+        Surface      = Color3.fromRGB(29, 19, 20),
+        Surface2     = Color3.fromRGB(44, 29, 30),
+        Primary      = Color3.fromRGB(235, 92, 92),
+        PrimaryDark  = Color3.fromRGB(190, 66, 66),
+        PrimaryLight = Color3.fromRGB(250, 140, 140),
+        Text         = Color3.fromRGB(250, 232, 232),
+        TextDim      = Color3.fromRGB(180, 148, 148),
+        TextFaint    = Color3.fromRGB(125, 100, 100),
+        Success      = Color3.fromRGB(235, 92, 92),
+        ToggleOff    = Color3.fromRGB(66, 50, 50),
+        Stroke       = Color3.fromRGB(255, 255, 255),
+        Danger       = Color3.fromRGB(235, 92, 92),
+        Dot          = Color3.fromRGB(235, 92, 92),
+    },
+    Arctic = {
+        BG           = Color3.fromRGB(226, 232, 240),
+        Surface      = Color3.fromRGB(241, 245, 249),
+        Surface2     = Color3.fromRGB(203, 213, 225),
+        Primary      = Color3.fromRGB(37, 99, 235),
+        PrimaryDark  = Color3.fromRGB(29, 78, 190),
+        PrimaryLight = Color3.fromRGB(96, 140, 250),
+        Text         = Color3.fromRGB(15, 23, 42),
+        TextDim      = Color3.fromRGB(71, 85, 105),
+        TextFaint    = Color3.fromRGB(148, 163, 184),
+        Success      = Color3.fromRGB(37, 99, 235),
+        ToggleOff    = Color3.fromRGB(180, 190, 205),
+        Stroke       = Color3.fromRGB(15, 23, 42),
+        Danger       = Color3.fromRGB(200, 60, 60),
+        Dot          = Color3.fromRGB(37, 99, 235),
+    },
 }
+local ThemeOrder = {"Claude", "Midnight", "Emerald", "Violet", "Crimson", "Arctic"}
+Config.Theme = Config.Theme or "Claude"
+if not Themes[Config.Theme] then Config.Theme = "Claude" end
+-- T = thème courant (mutable, mêmes clés que l'ancien T pour compat totale).
+local T = {}
+local RefreshThemeUI = nil -- assigné après construction du GUI (recolor live)
+local function ApplyThemeData(name)
+    local th = Themes[name] or Themes.Claude
+    for k, v in pairs(th) do T[k] = v end
+    Config.Theme = name
+end
+ApplyThemeData(Config.Theme)
+local function setTheme(name)
+    if not Themes[name] then return end
+    ApplyThemeData(name)
+    if RefreshThemeUI then pcall(RefreshThemeUI) end
+    pcall(notify, "Theme", name .. " appliqué")
+end
 
 -- ============================================================
 -- PLOT DETECTION (lightweight, cached)
@@ -763,14 +870,7 @@ local function clickButtonReal(btn)
     local pos, size
     pcall(function() pos, size = btn.AbsolutePosition, btn.AbsoluteSize end)
     if not pos or not size or size.X < 2 or size.Y < 2 then return false end
-    local menuMain = nil
-    pcall(function()
-        local pg = LocalPlayer:FindFirstChild("PlayerGui")
-        local sg = pg and pg:FindFirstChild("BaGASMenu")
-        local m = sg and sg:FindFirstChild("Main")
-        if m and m.Visible then menuMain = m m.Visible = false end
-    end)
-    task.wait(0.08)
+    -- Keep BaGAS visible: hiding Main here caused the apparent close/open flicker.
     local x, y = pos.X + size.X / 2, pos.Y + size.Y / 2
     local clicked = false
     -- attempt 1: synthetic mouse click
@@ -787,22 +887,14 @@ local function clickButtonReal(btn)
         pcall(function() selectable = btn.Selectable ~= false end)
         if selectable then
             pcall(function()
-                local gs = game:GetService("GuiService")
-                gs.SelectedObject = btn
-                task.wait(0.05)
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                task.wait(0.05)
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-                clicked = true
+                -- Do not assign GuiService.SelectedObject. Some game buttons are not
+                -- selectable GuiObjects and Roblox displays an invalid-GuiObject warning.
+                clicked = false
             end)
         end
         pcall(function() game:GetService("GuiService").SelectedObject = nil end)
         if not clicked and os.clock()%8<0.6 then print("[Gui] VIM non supporté : aucun clic possible") end
     end
-    -- restoration ALWAYS
-    pcall(function()
-        if menuMain then menuMain.Visible = true end
-    end)
     return clicked
 end
 -- Software click on a game button (e.g. big yellow Rebirth button)
@@ -2913,52 +3005,102 @@ pcall(function()
     if old2 then old2:Destroy() end
 end)
 
+-- Interface construite dans buildGUI() : la limite Luau est de 200 registres/locaux PAR FONCTION.
+-- Le chunk principal reste donc largement en dessous ; seuls les handles retournés sont exposés (GUI.*).
+local GUI
+local function buildGUI()
 local SG = make("ScreenGui", {Name="BaGASMenu", ResetOnSpawn=false, ZIndexBehavior=Enum.ZIndexBehavior.Sibling, DisplayOrder=999, Parent=LocalPlayer:WaitForChild("PlayerGui")})
 
-local MF = make("Frame", {Name="Main", Size=UDim2.new(0,360,0,520), Position=UDim2.new(0.5,-180,0.5,-260), BackgroundColor3=T.BG, BorderSizePixel=0, Visible=false, Parent=SG})
-make("UICorner", {CornerRadius=UDim.new(0,16), Parent=MF})
-make("UIStroke", {Color=T.Primary, Thickness=1.2, Transparency=0.55, Parent=MF})
+-- Registres pour recolor live lors d'un changement de thème (interface uniquement)
+local ToggleRefreshers = {}
+local SliderThemers = {} -- {fill, knobStroke, valBox}
+local SectionHeaders = {} -- {label, line}
+local CardStrokes = {} -- UIStroke à recolorer (bordures cartes)
 
--- Title bar (draggable)
-local TitleBar = make("Frame", {Name="TitleBar", Size=UDim2.new(1,0,0,44), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=MF})
-make("UICorner", {CornerRadius=UDim.new(0,16), Parent=TitleBar})
-make("Frame", {Size=UDim2.new(1,0,0,16), Position=UDim2.new(0,0,1,-16), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TitleBar}) -- hide corners
-make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.Primary), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=90, Parent=TitleBar})
+local WIN_W, WIN_H, HEAD_H = 440, 560, 60
+local MF = make("Frame", {Name="Main", Size=UDim2.new(0,WIN_W,0,WIN_H), Position=UDim2.new(0.5,-WIN_W/2,0.5,-WIN_H/2), BackgroundColor3=T.BG, BorderSizePixel=0, Visible=false, Parent=SG})
+make("UICorner", {CornerRadius=UDim.new(0,14), Parent=MF})
+local MFStroke = make("UIStroke", {Color=T.Primary, Thickness=1, Transparency=0.78, Parent=MF})
+local MFScale = make("UIScale", {Scale=1, Parent=MF})
 
-make("TextLabel", {Size=UDim2.new(1,-90,0,18), Position=UDim2.new(0,16,0,6), BackgroundTransparency=1, Text="BaGAS", TextColor3=Color3.fromRGB(255,255,255), TextSize=16, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=TitleBar})
-make("TextLabel", {Size=UDim2.new(1,-90,0,12), Position=UDim2.new(0,16,0,24), BackgroundTransparency=1, Text="Build a Gun Army  •  v2.2", TextColor3=Color3.fromRGB(255,230,210), TextSize=10, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=TitleBar})
+-- Title bar moderne (draggable) : logo + titre + pill version + boutons ronds
+local TitleBar = make("Frame", {Name="TitleBar", Size=UDim2.new(1,0,0,HEAD_H), BackgroundColor3=T.BG, BorderSizePixel=0, Parent=MF})
+make("UICorner", {CornerRadius=UDim.new(0,14), Parent=TitleBar})
+local TitleHide = make("Frame", {Size=UDim2.new(1,0,0,18), Position=UDim2.new(0,0,1,-18), BackgroundColor3=T.BG, BorderSizePixel=0, Parent=TitleBar})
+local TitleGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.BG), ColorSequenceKeypoint.new(1, T.Surface)}), Rotation=90, Parent=TitleBar})
+local TitleLine = make("Frame", {Size=UDim2.new(1,-24,0,1), Position=UDim2.new(0,12,1,-1), BackgroundColor3=T.Surface2, BorderSizePixel=0, Parent=TitleBar})
 
-local CloseBtn = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,-36,0,8), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.88, Text="×", TextColor3=Color3.fromRGB(80,40,20), TextSize=18, Font=Enum.Font.GothamBold, Parent=TitleBar})
-make("UICorner", {CornerRadius=UDim.new(0,8), Parent=CloseBtn})
-local MinBtn = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,-68,0,8), BackgroundColor3=Color3.fromRGB(255,255,255), BackgroundTransparency=0.88, Text="-", TextColor3=Color3.fromRGB(80,40,20), TextSize=12, Font=Enum.Font.GothamBold, Parent=TitleBar})
-make("UICorner", {CornerRadius=UDim.new(0,8), Parent=MinBtn})
+local Logo = make("Frame", {Size=UDim2.new(0,34,0,34), Position=UDim2.new(0,12,0.5,-17), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TitleBar})
+make("UICorner", {CornerRadius=UDim.new(0,10), Parent=Logo})
+local LogoGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=35, Parent=Logo})
+make("TextLabel", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="B", TextColor3=Color3.fromRGB(255,255,255), TextSize=17, Font=Enum.Font.GothamBlack, Parent=Logo})
 
--- Stats bar
-local StatsBar = make("Frame", {Size=UDim2.new(1,0,0,28), Position=UDim2.new(0,0,0,44), BackgroundColor3=T.Surface, BorderSizePixel=0, Parent=MF})
-local StatCash = make("TextLabel", {Size=UDim2.new(0.34,0,1,0), BackgroundTransparency=1, Text="$0", TextColor3=T.PrimaryLight, TextSize=11, Font=Enum.Font.GothamBold, Parent=StatsBar})
-local StatWave = make("TextLabel", {Size=UDim2.new(0.33,0,1,0), Position=UDim2.new(0.34,0,0,0), BackgroundTransparency=1, Text="Wave 0", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, Parent=StatsBar})
-local StatCount = make("TextLabel", {Size=UDim2.new(0.33,0,1,0), Position=UDim2.new(0.67,0,0,0), BackgroundTransparency=1, Text="0 placed", TextColor3=T.TextDim, TextSize=11, Font=Enum.Font.Gotham, Parent=StatsBar})
+make("TextLabel", {Size=UDim2.new(1,-170,0,19), Position=UDim2.new(0,54,0,10), BackgroundTransparency=1, Text="BaGAS <font color=\"#888888\">//</font> CONTROL PANEL", RichText=true, TextColor3=T.Text, TextSize=14, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, Parent=TitleBar})
+local SubTitle = make("TextLabel", {Size=UDim2.new(1,-170,0,13), Position=UDim2.new(0,54,0,30), BackgroundTransparency=1, Text="BUILD A GUN ARMY  •  v2.2", TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=TitleBar})
+local VerPill = make("Frame", {Size=UDim2.new(0,52,0,18), Position=UDim2.new(0,54,0,42), BackgroundColor3=T.Surface2, BorderSizePixel=0, Parent=TitleBar})
+make("UICorner", {CornerRadius=UDim.new(1,0), Parent=VerPill})
+local VerPillTxt = make("TextLabel", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="● ONLINE", TextColor3=T.PrimaryLight, TextSize=8, Font=Enum.Font.GothamBold, Parent=VerPill})
 
--- Tab bar
-local TabBar = make("Frame", {Size=UDim2.new(1,-12,0,32), Position=UDim2.new(0,6,0,78), BackgroundColor3=T.Surface, BorderSizePixel=0, Parent=MF})
-make("UICorner", {CornerRadius=UDim.new(0,10), Parent=TabBar})
+local function iconBtn(posX, txt, hoverC)
+    local b = make("TextButton", {Size=UDim2.new(0,28,0,28), Position=UDim2.new(1,posX,0.5,-14), BackgroundColor3=T.Surface2, Text=txt, TextColor3=T.TextDim, TextSize=14, Font=Enum.Font.GothamBold, AutoButtonColor=false, Parent=TitleBar})
+    make("UICorner", {CornerRadius=UDim.new(1,0), Parent=b})
+    b.MouseEnter:Connect(function() tw(b, {BackgroundColor3=hoverC or T.Surface2, TextColor3=T.Text}, 0.12) end)
+    b.MouseLeave:Connect(function() tw(b, {BackgroundColor3=T.Surface2, TextColor3=T.TextDim}, 0.15) end)
+    return b
+end
+local CloseBtn = iconBtn(-38, "×", Color3.fromRGB(200, 70, 70))
+local MinBtn = iconBtn(-72, "–", T.Surface2)
+
+-- Stats bar moderne : 3 cartes (noms StatCash/StatWave/StatCount conservés pour la boucle stats)
+local StatsBar = make("Frame", {Size=UDim2.new(1,-16,0,48), Position=UDim2.new(0,8,0,HEAD_H+2), BackgroundTransparency=1, BorderSizePixel=0, Parent=MF})
+make("UIListLayout", {FillDirection=Enum.FillDirection.Horizontal, Padding=UDim.new(0,8), SortOrder=Enum.SortOrder.LayoutOrder, Parent=StatsBar})
+local function statCard(order, icon, accent)
+    local card = make("Frame", {Size=UDim2.new(0.3333,-6,1,0), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=order, Parent=StatsBar})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=card})
+    local st = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.92, Parent=card})
+    table.insert(CardStrokes, st)
+    local ic = make("TextLabel", {Size=UDim2.new(0,22,1,0), Position=UDim2.new(0,8,0,0), BackgroundTransparency=1, Text=icon, TextColor3=accent, TextSize=13, Font=Enum.Font.GothamBold, Parent=card})
+    local val = make("TextLabel", {Size=UDim2.new(1,-34,1,0), Position=UDim2.new(0,30,0,0), BackgroundTransparency=1, Text="-", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, Parent=card})
+    return card, val, ic
+end
+local StatCash = select(2, statCard(1, "$", T.PrimaryLight))
+local StatWave = select(2, statCard(2, "◈", T.Text))
+local StatCount = select(2, statCard(3, "⬢", T.TextDim))
+StatCash.Text = "$0"
+StatWave.Text = "Wave 0"
+StatCount.Text = "0 placed"
+
+-- Tab bar moderne : pilules avec indicateur animé
+local TabBar = make("Frame", {Size=UDim2.new(1,-16,0,40), Position=UDim2.new(0,8,0,HEAD_H+56), BackgroundColor3=T.Surface, BorderSizePixel=0, Parent=MF})
+make("UICorner", {CornerRadius=UDim.new(0,12), Parent=TabBar})
+local TabBarStroke = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.92, Parent=TabBar})
+table.insert(CardStrokes, TabBarStroke)
+make("UIPadding", {PaddingTop=UDim.new(0,4), PaddingBottom=UDim.new(0,4), PaddingLeft=UDim.new(0,4), PaddingRight=UDim.new(0,4), Parent=TabBar})
 local TabNames = {"Farm","Movement","Player","Settings"}
+local TabIcons = {Farm="◆", Movement="✦", Player="●", Settings="⚙"}
 local TabBtns = {}
-local Indicator = make("Frame", {Size=UDim2.new(0.25,-6,0,2), Position=UDim2.new(0,3,1,-2), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TabBar})
-make("UICorner", {CornerRadius=UDim.new(1,0), Parent=Indicator})
+local Indicator = make("Frame", {Size=UDim2.new(0.25,-4,1,0), Position=UDim2.new(0,2,0,0), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=TabBar})
+make("UICorner", {CornerRadius=UDim.new(0,9), Parent=Indicator})
+local IndicatorGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.Primary), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=25, Parent=Indicator})
 for i, name in ipairs(TabNames) do
-    local btn = make("TextButton", {Name=name, Size=UDim2.new(0.25,0,1,0), Position=UDim2.new((i-1)*0.25,0,0,0), BackgroundTransparency=1, Text=name, TextColor3=(name==Config.ActiveTab and T.Primary or T.TextDim), TextSize=11, Font=Enum.Font.GothamBold, Parent=TabBar})
+    local btn = make("TextButton", {Name=name, Size=UDim2.new(0.25,0,1,0), Position=UDim2.new((i-1)*0.25,0,0,0), BackgroundTransparency=1, Text=(TabIcons[name] or "•").."  "..name, TextColor3=(name==Config.ActiveTab and Color3.fromRGB(255,255,255) or T.TextDim), TextSize=11, Font=Enum.Font.GothamBold, AutoButtonColor=false, ZIndex=2, Parent=TabBar})
+    btn.MouseEnter:Connect(function()
+        if Config.ActiveTab ~= name then tw(btn, {TextColor3=T.Text}, 0.12) end
+    end)
+    btn.MouseLeave:Connect(function()
+        if Config.ActiveTab ~= name then tw(btn, {TextColor3=T.TextDim}, 0.15) end
+    end)
     TabBtns[name]=btn
 end
 
--- Content
-local Content = make("Frame", {Size=UDim2.new(1,-12,1,-118), Position=UDim2.new(0,6,0,116), BackgroundTransparency=1, Parent=MF})
+-- Content moderne
+local Content = make("Frame", {Size=UDim2.new(1,-16,1,-(HEAD_H+106)), Position=UDim2.new(0,8,0,HEAD_H+100), BackgroundTransparency=1, Parent=MF})
 local Pages = {}
 local orders = {Farm=0, Movement=0, Player=0, Settings=0}
 for _, name in ipairs(TabNames) do
-    local sf = make("ScrollingFrame", {Name=name.."Page", Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, BorderSizePixel=0, ScrollBarThickness=3, ScrollBarImageColor3=T.Primary, CanvasSize=UDim2.new(0,0,0,0), Visible=(name==Config.ActiveTab), Parent=Content})
-    make("UIListLayout", {Padding=UDim.new(0,6), SortOrder=Enum.SortOrder.LayoutOrder, Parent=sf})
-    make("UIPadding", {PaddingTop=UDim.new(0,2), PaddingBottom=UDim.new(0,8), PaddingLeft=UDim.new(0,2), PaddingRight=UDim.new(0,4), Parent=sf})
+    local sf = make("ScrollingFrame", {Name=name.."Page", Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, BorderSizePixel=0, ScrollBarThickness=2, ScrollBarImageColor3=T.Primary, ScrollBarImageTransparency=0.25, CanvasSize=UDim2.new(0,0,0,0), Visible=(name==Config.ActiveTab), Parent=Content})
+    make("UIListLayout", {Padding=UDim.new(0,8), SortOrder=Enum.SortOrder.LayoutOrder, Parent=sf})
+    make("UIPadding", {PaddingTop=UDim.new(0,2), PaddingBottom=UDim.new(0,10), PaddingLeft=UDim.new(0,2), PaddingRight=UDim.new(0,6), Parent=sf})
     Pages[name]=sf
 end
 local function tagCanvas()
@@ -2978,29 +3120,41 @@ local function nextOrder(tab) orders[tab]+=1 return orders[tab] end
 
 local function section(tab, title)
     local pg = Pages[tab]
-    local row = make("Frame", {Size=UDim2.new(1,0,0,20), BackgroundTransparency=1, LayoutOrder=nextOrder(tab), Parent=pg})
-    make("TextLabel", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="  "..string.upper(title), TextColor3=T.PrimaryLight, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
-    make("Frame", {Size=UDim2.new(1,0,0,1), Position=UDim2.new(0,0,1,-1), BackgroundColor3=T.Primary, BackgroundTransparency=0.7, BorderSizePixel=0, Parent=row})
+    local row = make("Frame", {Size=UDim2.new(1,0,0,22), BackgroundTransparency=1, LayoutOrder=nextOrder(tab), Parent=pg})
+    local pill = make("Frame", {Size=UDim2.new(0,3,0,14), Position=UDim2.new(0,2,0.5,-7), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=row})
+    make("UICorner", {CornerRadius=UDim.new(1,0), Parent=pill})
+    local lbl = make("TextLabel", {Size=UDim2.new(1,-14,1,0), Position=UDim2.new(0,12,0,0), BackgroundTransparency=1, Text=string.upper(title), TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
+    table.insert(SectionHeaders, {pill=pill, label=lbl})
     task.defer(tagCanvas)
 end
 
 local function toggle(tab, key, label, cb)
     local pg = Pages[tab]
-    local row = make("Frame", {Size=UDim2.new(1,0,0,36), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder(tab), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=row})
-    make("TextLabel", {Size=UDim2.new(1,-62,1,0), Position=UDim2.new(0,12,0,0), BackgroundTransparency=1, Text=label, TextColor3=T.Text, TextSize=12, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
+    local row = make("Frame", {Size=UDim2.new(1,0,0,44), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder(tab), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=row})
+    local stroke = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.93, Parent=row})
+    table.insert(CardStrokes, stroke)
+    local dotA = make("Frame", {Size=UDim2.new(0,6,0,6), Position=UDim2.new(0,12,0.5,-3), BackgroundColor3=Config[key] and T.Primary or T.TextFaint, BorderSizePixel=0, Parent=row})
+    make("UICorner", {CornerRadius=UDim.new(1,0), Parent=dotA})
+    make("TextLabel", {Size=UDim2.new(1,-72,1,0), Position=UDim2.new(0,26,0,0), BackgroundTransparency=1, Text=label, TextColor3=T.Text, TextSize=12, Font=Enum.Font.GothamMedium, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, Parent=row})
 
-    local bg = make("Frame", {Size=UDim2.new(0,40,0,20), Position=UDim2.new(1,-50,0.5,-10), BackgroundColor3=Config[key] and T.Success or T.ToggleOff, BorderSizePixel=0, Parent=row})
+    local bg = make("Frame", {Size=UDim2.new(0,42,0,22), Position=UDim2.new(1,-54,0.5,-11), BackgroundColor3=Config[key] and T.Success or T.ToggleOff, BorderSizePixel=0, Parent=row})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=bg})
-    local dot = make("Frame", {Size=UDim2.new(0,16,0,16), Position=Config[key] and UDim2.new(1,-18,0.5,-8) or UDim2.new(0,2,0.5,-8), BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, Parent=bg})
+    local dot = make("Frame", {Size=UDim2.new(0,16,0,16), Position=Config[key] and UDim2.new(1,-19,0.5,-8) or UDim2.new(0,3,0.5,-8), BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, Parent=bg})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=dot})
+    local dotStroke = make("UIStroke", {Color=T.Primary, Thickness=1, Transparency=Config[key] and 0 or 1, Parent=dot})
 
     local function refresh()
         local on = Config[key]
         tw(bg, {BackgroundColor3 = on and T.Success or T.ToggleOff}, 0.16)
-        tw(dot, {Position = on and UDim2.new(1,-18,0.5,-8) or UDim2.new(0,2,0.5,-8)}, 0.16, Enum.EasingStyle.Back)
+        tw(dot, {Position = on and UDim2.new(1,-19,0.5,-8) or UDim2.new(0,3,0.5,-8)}, 0.18, Enum.EasingStyle.Back)
+        tw(dotA, {BackgroundColor3 = on and T.Primary or T.TextFaint}, 0.16)
+        tw(dotStroke, {Transparency = on and 0 or 1}, 0.16)
     end
-    local hit = make("TextButton", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="", Parent=row})
+    table.insert(ToggleRefreshers, refresh)
+    local hit = make("TextButton", {Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, Text="", AutoButtonColor=false, Parent=row})
+    hit.MouseEnter:Connect(function() tw(stroke, {Transparency=0.82}, 0.12) end)
+    hit.MouseLeave:Connect(function() tw(stroke, {Transparency=0.93}, 0.15) end)
     hit.MouseButton1Click:Connect(function()
         Config[key] = not Config[key]
         refresh()
@@ -3012,25 +3166,30 @@ end
 
 local function slider(tab, key, label, min, max, step, suffix)
     local pg = Pages[tab]
-    local row = make("Frame", {Size=UDim2.new(1,0,0,48), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder(tab), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=row})
-    make("TextLabel", {Size=UDim2.new(0.55,0,0,14), Position=UDim2.new(0,12,0,6), BackgroundTransparency=1, Text=label, TextColor3=T.Text, TextSize=11, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
+    local row = make("Frame", {Size=UDim2.new(1,0,0,56), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder(tab), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=row})
+    local stroke = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.93, Parent=row})
+    table.insert(CardStrokes, stroke)
+    make("TextLabel", {Size=UDim2.new(0.55,0,0,16), Position=UDim2.new(0,12,0,7), BackgroundTransparency=1, Text=label, TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamMedium, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, Parent=row})
     local val = Config[key]
     -- editable value via keyboard (e.g. type 23 or 104) + drag slider; both sync
-    local valBox = make("TextBox", {Size=UDim2.new(0.4,0,0,14), Position=UDim2.new(0.55,0,0,6), BackgroundTransparency=1, Text=tostring(val)..(suffix or ""), TextColor3=T.Primary, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Right, ClearTextOnFocus=false, Parent=row})
-    local track = make("Frame", {Size=UDim2.new(1,-24,0,4), Position=UDim2.new(0,12,0,30), BackgroundColor3=T.Surface2, BorderSizePixel=0, Parent=row})
+    local valBox = make("TextBox", {Size=UDim2.new(0,86,0,20), Position=UDim2.new(1,-98,0,5), BackgroundColor3=T.Surface2, Text=tostring(val)..(suffix or ""), TextColor3=T.PrimaryLight, TextSize=11, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Center, ClearTextOnFocus=false, Parent=row})
+    make("UICorner", {CornerRadius=UDim.new(0,7), Parent=valBox})
+    local track = make("Frame", {Size=UDim2.new(1,-24,0,6), Position=UDim2.new(0,12,0,34), BackgroundColor3=T.Surface2, BorderSizePixel=0, Parent=row})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=track})
     local frac = math.clamp((val-min)/(max-min),0,1)
     local fill = make("Frame", {Size=UDim2.new(frac,0,1,0), BackgroundColor3=T.Primary, BorderSizePixel=0, Parent=track})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=fill})
-    local knob = make("Frame", {Size=UDim2.new(0,14,0,14), Position=UDim2.new(frac,-7,0.5,-7), BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, Parent=track})
+    local fillGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=0, Parent=fill})
+    local knob = make("Frame", {Size=UDim2.new(0,16,0,16), Position=UDim2.new(frac,-8,0.5,-8), BackgroundColor3=Color3.fromRGB(255,255,255), BorderSizePixel=0, Parent=track})
     make("UICorner", {CornerRadius=UDim.new(1,0), Parent=knob})
-    make("UIStroke", {Color=T.Primary, Thickness=1.2, Parent=knob})
+    local knobStroke = make("UIStroke", {Color=T.Primary, Thickness=1.5, Parent=knob})
+    table.insert(SliderThemers, {fill=fill, grad=fillGrad, knobStroke=knobStroke, valBox=valBox, track=track})
     local dragging=false
     local function paint(v)
         local f = math.clamp((v-min)/(max-min),0,1)
         fill.Size = UDim2.new(f,0,1,0)
-        knob.Position = UDim2.new(f,-7,0.5,-7)
+        knob.Position = UDim2.new(f,-8,0.5,-8)
         valBox.Text = tostring(v)..(suffix or "")
     end
     local function setFromX(x)
@@ -3068,18 +3227,77 @@ end
 local function switchTab(name)
     Config.ActiveTab = name
     for n, pg in pairs(Pages) do pg.Visible = (n==name) end
-    for n, btn in pairs(TabBtns) do btn.TextColor3 = (n==name and T.Primary or T.TextDim) end
+    for n, btn in pairs(TabBtns) do
+        btn.TextColor3 = (n==name and Color3.fromRGB(255,255,255) or T.TextDim)
+    end
     local idx = 1 for i,n in ipairs(TabNames) do if n==name then idx=i break end end
-    tw(Indicator, {Position = UDim2.new((idx-1)*0.25, 3, 1, -2)}, 0.18)
+    tw(Indicator, {Position = UDim2.new((idx-1)*0.25, 3, 0, 0)}, 0.2, Enum.EasingStyle.Quart)
     task.defer(tagCanvas)
 end
 for name, btn in pairs(TabBtns) do btn.MouseButton1Click:Connect(function() switchTab(name) end) end
+pcall(switchTab, Config.ActiveTab)
+
+-- Recolor live (appelé par setTheme) : ne touche à aucune logique farm
+RefreshThemeUI = function()
+    pcall(function()
+        MF.BackgroundColor3 = T.BG
+        MFStroke.Color = T.Primary
+        TitleBar.BackgroundColor3 = T.BG
+        TitleHide.BackgroundColor3 = T.BG
+        TitleGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, T.BG), ColorSequenceKeypoint.new(1, T.Surface)})
+        TitleLine.BackgroundColor3 = T.Surface2
+        Logo.BackgroundColor3 = T.Primary
+        LogoGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)})
+        SubTitle.TextColor3 = T.TextDim
+        VerPill.BackgroundColor3 = T.Surface2
+        VerPillTxt.TextColor3 = T.PrimaryLight
+        CloseBtn.BackgroundColor3 = T.Surface2
+        MinBtn.BackgroundColor3 = T.Surface2
+        CloseBtn.TextColor3 = T.TextDim
+        MinBtn.TextColor3 = T.TextDim
+        for _, _st in ipairs(CardStrokes) do
+            pcall(function() _st.Color = T.Stroke end)
+        end
+        TabBar.BackgroundColor3 = T.Surface
+        Indicator.BackgroundColor3 = T.Primary
+        IndicatorGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, T.Primary), ColorSequenceKeypoint.new(1, T.PrimaryDark)})
+        for _, pg in pairs(Pages) do
+            if pg:IsA("ScrollingFrame") then pg.ScrollBarImageColor3 = T.Primary end
+            for _, ch in ipairs(pg:GetChildren()) do
+                if ch:IsA("Frame") and ch.LayoutOrder and ch.LayoutOrder > 0 then
+                    -- ligne carte directe (toggle/slider/stats/detect/theme) : fond Surface
+                    if ch.Size.Y.Offset >= 28 then ch.BackgroundColor3 = T.Surface end
+                end
+            end
+        end
+        for _, card in ipairs(StatsBar:GetChildren()) do
+            if card:IsA("Frame") then card.BackgroundColor3 = T.Surface end
+        end
+        StatCash.TextColor3 = T.PrimaryLight
+        StatWave.TextColor3 = T.Text
+        StatCount.TextColor3 = T.TextDim
+        for _, h in ipairs(SectionHeaders) do
+            h.pill.BackgroundColor3 = T.Primary
+            h.label.TextColor3 = T.TextDim
+        end
+        for _, s in ipairs(SliderThemers) do
+            s.fill.BackgroundColor3 = T.Primary
+            s.grad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)})
+            s.knobStroke.Color = T.Primary
+            s.valBox.TextColor3 = T.PrimaryLight
+            s.valBox.BackgroundColor3 = T.Surface2
+            s.track.BackgroundColor3 = T.Surface2
+        end
+        for _, r in ipairs(ToggleRefreshers) do pcall(r) end
+        switchTab(Config.ActiveTab)
+    end)
+end
 
 -- Drag
 do
     local dragging=false
     local startMouse, startPos
-    local dragHit = make("TextButton", {Size=UDim2.new(1,-76,1,0), BackgroundTransparency=1, Text="", Parent=TitleBar})
+    local dragHit = make("TextButton", {Size=UDim2.new(1,-120,1,0), BackgroundTransparency=1, Text="", AutoButtonColor=false, Parent=TitleBar})
     dragHit.MouseButton1Down:Connect(function()
         dragging=true
         startMouse = UserInputService:GetMouseLocation()
@@ -3096,34 +3314,38 @@ do
     end))
 end
 
--- Minimize / Close
+-- Minimize / Close (même comportement, animation modernisée)
 local minimized=false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        tw(MF, {Size=UDim2.new(0,360,0,44)}, 0.22, Enum.EasingStyle.Quart)
+        tw(MF, {Size=UDim2.new(0,WIN_W,0,HEAD_H)}, 0.22, Enum.EasingStyle.Quart)
         StatsBar.Visible=false; TabBar.Visible=false; Content.Visible=false
     else
         StatsBar.Visible=true; TabBar.Visible=true; Content.Visible=true
-        tw(MF, {Size=UDim2.new(0,360,0,520)}, 0.26, Enum.EasingStyle.Back)
+        tw(MF, {Size=UDim2.new(0,WIN_W,0,WIN_H)}, 0.26, Enum.EasingStyle.Back)
         task.defer(tagCanvas)
     end
 end)
 CloseBtn.MouseButton1Click:Connect(function()
     Config.MenuOpen=false
-    tw(MF, {Size=UDim2.new(0,360,0,44)}, 0.18)
+    tw(MFScale, {Scale=0.96}, 0.15)
+    tw(MF, {Size=UDim2.new(0,WIN_W,0,HEAD_H)}, 0.18)
     task.delay(0.18, function() if not Config.MenuOpen then MF.Visible=false end end)
 end)
 local function openMenu()
     Config.MenuOpen=true; MF.Visible=true
     if minimized then minimized=false StatsBar.Visible=true TabBar.Visible=true Content.Visible=true end
-    MF.Size=UDim2.new(0,360,0,44)
-    tw(MF, {Size=UDim2.new(0,360,0,520)}, 0.28, Enum.EasingStyle.Back)
+    MF.Size=UDim2.new(0,WIN_W,0,HEAD_H)
+    MFScale.Scale=0.96
+    tw(MFScale, {Scale=1}, 0.22, Enum.EasingStyle.Back)
+    tw(MF, {Size=UDim2.new(0,WIN_W,0,WIN_H)}, 0.28, Enum.EasingStyle.Back)
     task.defer(tagCanvas)
 end
 local function closeMenu()
     Config.MenuOpen=false
-    tw(MF, {Size=UDim2.new(0,360,0,44)}, 0.18)
+    tw(MFScale, {Scale=0.96}, 0.15)
+    tw(MF, {Size=UDim2.new(0,WIN_W,0,HEAD_H)}, 0.18)
     task.delay(0.18, function() if not Config.MenuOpen then MF.Visible=false end end)
 end
 trackConn(UserInputService.InputBegan:Connect(function(inp,gp)
@@ -3137,17 +3359,28 @@ end))
 -- BUILD CONTENT
 -- ============================================================
 section("Farm","Auto Farm")
+local refreshAutoBuy, refreshAutoPlace, refreshAutoRebirth, refreshAutoPickup
 toggle("Farm","MasterAutoFarm","Master Auto Farm (enable all)", function(v)
-    notify("Farm", v and "MASTER ON - all farms active" or "MASTER OFF")
+    Config.AutoBuyAffordable = v
+    Config.AutoPlaceUpgrade = v
+    Config.AutoPlace = v
+    Config.AutoUpgrade = v
+    Config.AutoRebirth = v
+    Config.AutoPickupCoins = v
+    if refreshAutoBuy then refreshAutoBuy() end
+    if refreshAutoPlace then refreshAutoPlace() end
+    if refreshAutoRebirth then refreshAutoRebirth() end
+    if refreshAutoPickup then refreshAutoPickup() end
+    notify("Farm", v and "MASTER ON - all farms active" or "MASTER OFF - all farms disabled")
 end)
-toggle("Farm","AutoBuyAffordable","Auto Buy Weapon Box", function(v) notify("Farm", v and "Auto Buy ON" or "Auto Buy OFF") end)
-toggle("Farm","AutoPlaceUpgrade","Auto Place + Upgrade", function(v)
+refreshAutoBuy = toggle("Farm","AutoBuyAffordable","Auto Buy Weapon Box", function(v) notify("Farm", v and "Auto Buy ON" or "Auto Buy OFF") end)
+refreshAutoPlace = toggle("Farm","AutoPlaceUpgrade","Auto Place + Upgrade", function(v)
     Config.AutoPlace = v
     Config.AutoUpgrade = v
     notify("Farm", v and "Place + Upgrade ON" or "Place + Upgrade OFF")
 end)
-toggle("Farm","AutoRebirth","Auto Rebirth", function(v) notify("Farm", v and "Auto Rebirth ON" or "Auto Rebirth OFF") end)
-toggle("Farm","AutoPickupCoins","Auto Pickup Coins", function(v) notify("Farm", v and "Pickup ON" or "Pickup OFF") end)
+refreshAutoRebirth = toggle("Farm","AutoRebirth","Auto Rebirth", function(v) notify("Farm", v and "Auto Rebirth ON" or "Auto Rebirth OFF") end)
+refreshAutoPickup = toggle("Farm","AutoPickupCoins","Auto Pickup Coins", function(v) notify("Farm", v and "Pickup ON" or "Pickup OFF") end)
 
 section("Farm","Delays")
 slider("Farm","PlaceDelay","Place Delay",0.1,3,0.1,"s")
@@ -3171,14 +3404,61 @@ section("Player","Utilities")
 toggle("Player","AntiAFK","Anti-AFK", function(v) setAntiAFK(v) end)
 
 section("Settings","Theme")
+local ThemeBtnRefs = {}
 do
     local pg = Pages.Settings
-    local row = make("Frame", {Size=UDim2.new(1,0,0,36), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=row})
-    make("TextLabel", {Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,12,0,0), BackgroundTransparency=1, Text="Theme", TextColor3=T.Text, TextSize=11, Font=Enum.Font.Gotham, TextXAlignment=Enum.TextXAlignment.Left, Parent=row})
-    local b = make("TextButton", {Size=UDim2.new(0,72,0,22), Position=UDim2.new(1,-84,0.5,-11), BackgroundColor3=T.Primary, Text="Claude", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, Parent=row})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=b})
-    b.MouseButton1Click:Connect(function() notify("Theme","Claude - only theme for now") end)
+    local card = make("Frame", {Size=UDim2.new(1,0,0,108), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=card})
+    local cardStroke = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.93, Parent=card})
+    table.insert(CardStrokes, cardStroke)
+    make("TextLabel", {Size=UDim2.new(1,-24,0,16), Position=UDim2.new(0,12,0,8), BackgroundTransparency=1, Text="THEME  •  "..string.upper(Config.Theme), TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, Parent=card})
+    local grid = make("Frame", {Size=UDim2.new(1,-24,0,72), Position=UDim2.new(0,12,0,28), BackgroundTransparency=1, Parent=card})
+    make("UIGridLayout", {CellSize=UDim2.new(0.3333,-6,0,32), CellPadding=UDim2.new(0,6,0,8), SortOrder=Enum.SortOrder.LayoutOrder, Parent=grid})
+    local function paintThemeBtns()
+        for name, refs in pairs(ThemeBtnRefs) do
+            local selected = (Config.Theme == name)
+            refs.btn.BackgroundColor3 = selected and T.Primary or T.Surface2
+            refs.label.TextColor3 = selected and Color3.fromRGB(255,255,255) or T.TextDim
+            refs.sel.Color = T.PrimaryLight
+            refs.sel.Transparency = selected and 0 or 1
+        end
+    end
+    for idx, name in ipairs(ThemeOrder) do
+        local th = Themes[name]
+        local b = make("TextButton", {Size=UDim2.new(0.3333,-6,0,32), BackgroundColor3=(Config.Theme==name and T.Primary or T.Surface2), Text="", AutoButtonColor=false, LayoutOrder=idx, Parent=grid})
+        make("UICorner", {CornerRadius=UDim.new(0,8), Parent=b})
+        local sel = make("UIStroke", {Color=T.PrimaryLight, Thickness=1.5, Transparency=(Config.Theme==name and 0 or 1), Parent=b})
+        local dot = make("Frame", {Size=UDim2.new(0,14,0,14), Position=UDim2.new(0,8,0.5,-7), BackgroundColor3=th.Dot, BorderSizePixel=0, Parent=b})
+        make("UICorner", {CornerRadius=UDim.new(1,0), Parent=dot})
+        local lbl = make("TextLabel", {Size=UDim2.new(1,-28,1,0), Position=UDim2.new(0,26,0,0), BackgroundTransparency=1, Text=name, TextColor3=((Config.Theme==name) and Color3.fromRGB(255,255,255) or T.TextDim), TextSize=10, Font=Enum.Font.GothamBold, TextXAlignment=Enum.TextXAlignment.Left, TextTruncate=Enum.TextTruncate.AtEnd, Parent=b})
+        ThemeBtnRefs[name] = {btn=b, label=lbl, sel=sel}
+        b.MouseEnter:Connect(function()
+            if Config.Theme ~= name then tw(b, {BackgroundColor3=T.Surface2}, 0.1) tw(lbl, {TextColor3=T.Text}, 0.1) end
+        end)
+        b.MouseLeave:Connect(function() paintThemeBtns() end)
+        b.MouseButton1Click:Connect(function()
+            setTheme(name)
+            paintThemeBtns()
+            for _, ch in ipairs(card:GetChildren()) do
+                if ch:IsA("TextLabel") and ch.Text:find("THEME") then ch.Text = "THEME  •  "..string.upper(name) end
+            end
+        end)
+    end
+    -- le recolor live met aussi à jour la grille de thèmes (sans toucher la logique)
+    local _prevRefresh = RefreshThemeUI
+    RefreshThemeUI = function()
+        if _prevRefresh then pcall(_prevRefresh) end
+        pcall(function()
+            card.BackgroundColor3 = T.Surface
+            for _, ch in ipairs(card:GetChildren()) do
+                if ch:IsA("TextLabel") and ch.Text:find("THEME") then
+                    ch.TextColor3 = T.TextDim
+                    ch.Text = "THEME  •  "..string.upper(Config.Theme)
+                end
+            end
+            paintThemeBtns()
+        end)
+    end
     task.defer(tagCanvas)
 end
 
@@ -3187,26 +3467,34 @@ local statsLbl
 do
     local pg = Pages.Settings
     local fr = make("Frame", {Size=UDim2.new(1,0,0,70), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=fr})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=fr})
+    local st = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.93, Parent=fr})
+    table.insert(CardStrokes, st)
     statsLbl = make("TextLabel", {Size=UDim2.new(1,-14,1,-8), Position=UDim2.new(0,7,0,4), BackgroundTransparency=1, Text="Bought: 0 | Skipped: 0\nPlaced: 0 | Upgraded: 0\nRebirths: 0", TextColor3=T.TextDim, TextSize=11, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, Parent=fr})
     task.defer(tagCanvas)
 end
 
 section("Settings","Live detection")
 local detectLbl
+local detectFrameStroke
 do
     local pg = Pages.Settings
     local fr = make("Frame", {Size=UDim2.new(1,0,0,68), BackgroundColor3=T.Surface, BorderSizePixel=0, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=fr})
-    make("UIStroke", {Color=T.Primary, Transparency=0.7, Thickness=1, Parent=fr})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=fr})
+    detectFrameStroke = make("UIStroke", {Color=T.Primary, Transparency=0.55, Thickness=1, Parent=fr})
     detectLbl = make("TextLabel", {Size=UDim2.new(1,-12,1,-8), Position=UDim2.new(0,6,0,4), BackgroundTransparency=1, Text="Plot: ...\nCash: ... | Box: ...\nLast: -", TextColor3=T.PrimaryLight, TextSize=10, Font=Enum.Font.Code, TextXAlignment=Enum.TextXAlignment.Left, TextYAlignment=Enum.TextYAlignment.Top, Parent=fr})
     task.defer(tagCanvas)
 end
 
+local btnRescanRef, btnRescanGrad
 do
     local pg = Pages.Settings
-    local btnRescan = make("TextButton", {Size=UDim2.new(1,0,0,28), BackgroundColor3=T.Primary, Text="↻ Rescan Cash/Wave/Plot", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btnRescan})
+    local btnRescan = make("TextButton", {Size=UDim2.new(1,0,0,32), BackgroundColor3=T.Primary, Text="↻  Rescan Cash / Wave / Plot", TextColor3=Color3.fromRGB(255,255,255), TextSize=11, Font=Enum.Font.GothamBold, AutoButtonColor=false, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=btnRescan})
+    btnRescanGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)}), Rotation=25, Parent=btnRescan})
+    btnRescan.MouseEnter:Connect(function() tw(btnRescan, {BackgroundTransparency=0.08}, 0.12) end)
+    btnRescan.MouseLeave:Connect(function() tw(btnRescan, {BackgroundTransparency=0}, 0.15) end)
+    btnRescanRef = btnRescan
     btnRescan.MouseButton1Click:Connect(function()
         _cashObj=nil _cashAttrRoot=nil _cashAttrKey=nil _cashUI=nil _triedHeavyCash=false
         _waveObj=nil _waveAttrRoot=nil _waveAttrKey=nil _waveUI=nil _triedHeavyWave=false
@@ -3221,10 +3509,16 @@ do
 end
 
 section("Settings","Diagnostic")
+local diagBtnRef, diagBtn2Ref
 do
     local pg = Pages.Settings
-    local btn = make("TextButton", {Size=UDim2.new(1,0,0,34), BackgroundColor3=T.Surface2, Text="Run diagnostic  (console F9)", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btn})
+    local btn = make("TextButton", {Size=UDim2.new(1,0,0,36), BackgroundColor3=T.Surface2, Text="◉  Run diagnostic  (console F9)", TextColor3=T.Text, TextSize=11, Font=Enum.Font.GothamBold, AutoButtonColor=false, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=btn})
+    local bst = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.9, Parent=btn})
+    table.insert(CardStrokes, bst)
+    btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3=T.Surface}, 0.12) end)
+    btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3=T.Surface2}, 0.15) end)
+    diagBtnRef = btn
     btn.MouseButton1Click:Connect(function()
         task.spawn(function()
             pcall(function()
@@ -3325,8 +3619,13 @@ do
         end)
         notify("Diagnostic","Check console (F9)")
     end)
-    local btn2 = make("TextButton", {Size=UDim2.new(1,0,0,30), BackgroundColor3=T.Surface, Text="Dump Cash/Wave sources (F9)", TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.Gotham, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=btn2})
+    local btn2 = make("TextButton", {Size=UDim2.new(1,0,0,32), BackgroundColor3=T.Surface, Text="Dump Cash/Wave sources (F9)", TextColor3=T.TextDim, TextSize=10, Font=Enum.Font.GothamMedium, AutoButtonColor=false, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=btn2})
+    local bst2 = make("UIStroke", {Color=T.Stroke, Thickness=1, Transparency=0.93, Parent=btn2})
+    table.insert(CardStrokes, bst2)
+    btn2.MouseEnter:Connect(function() tw(btn2, {TextColor3=T.Text}, 0.12) end)
+    btn2.MouseLeave:Connect(function() tw(btn2, {TextColor3=T.TextDim}, 0.15) end)
+    diagBtn2Ref = btn2
     btn2.MouseButton1Click:Connect(function()
         task.spawn(function() pcall(dumpCurrencySources) end)
         notify("Dump","Cash/Wave → console F9")
@@ -3389,22 +3688,51 @@ local function unloadScript()
     _overheadCacheV, _overheadCacheT = nil, 0
     _pickupTpT, _mvThrottleT = 0, 0
     -- détruit le GUI (ses propres connexions meurent avec lui)
-    pcall(function() SG:Destroy() end)
+    pcall(function() GUI.SG:Destroy() end)
     print("[BaGAS] Script unloaded: GUI destroyed, loops stopped, character restored")
 end
 do
     local pg = Pages.Settings
-    local un = make("TextButton", {Size=UDim2.new(1,0,0,32), BackgroundColor3=Color3.fromRGB(170,60,60), Text="UNLOAD script (Unload)", TextColor3=Color3.fromRGB(255,255,255), TextSize=12, Font=Enum.Font.GothamBold, LayoutOrder=nextOrder("Settings"), Parent=pg})
-    make("UICorner", {CornerRadius=UDim.new(0,8), Parent=un})
+    local un = make("TextButton", {Size=UDim2.new(1,0,0,36), BackgroundColor3=T.Danger, Text="⏻  UNLOAD script", TextColor3=Color3.fromRGB(255,255,255), TextSize=12, Font=Enum.Font.GothamBold, AutoButtonColor=false, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("UICorner", {CornerRadius=UDim.new(0,10), Parent=un})
+    local unGrad = make("UIGradient", {Color=ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0))}), Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0, 0.85), NumberSequenceKeypoint.new(1, 0.92)}), Rotation=25, Parent=un})
+    un.MouseEnter:Connect(function() tw(un, {BackgroundTransparency=0.1}, 0.12) end)
+    un.MouseLeave:Connect(function() tw(un, {BackgroundTransparency=0}, 0.15) end)
     un.MouseButton1Click:Connect(function() unloadScript() end)
     task.defer(tagCanvas)
+    -- Recolor final des boutons d'action (Rescan/Diagnostic/Unload/Détection) au changement de thème
+    local _prev2 = RefreshThemeUI
+    RefreshThemeUI = function()
+        if _prev2 then pcall(_prev2) end
+        pcall(function()
+            if btnRescanRef then
+                btnRescanRef.BackgroundColor3 = T.Primary
+                if btnRescanGrad then btnRescanGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, T.PrimaryLight), ColorSequenceKeypoint.new(1, T.PrimaryDark)}) end
+            end
+            if diagBtnRef then
+                diagBtnRef.BackgroundColor3 = T.Surface2
+                diagBtnRef.TextColor3 = T.Text
+            end
+            if diagBtn2Ref then
+                diagBtn2Ref.BackgroundColor3 = T.Surface
+                diagBtn2Ref.TextColor3 = T.TextDim
+            end
+            if un then un.BackgroundColor3 = T.Danger end
+            if detectFrameStroke then detectFrameStroke.Color = T.Primary end
+            if detectLbl then detectLbl.TextColor3 = T.PrimaryLight end
+        end)
+    end
 end
 
 do
     local pg = Pages.Settings
-    make("TextLabel", {Size=UDim2.new(1,0,0,32), BackgroundTransparency=1, Text="BaGAS v2.2  •  RightShift = menu\nDrag top bar to move", TextColor3=T.TextFaint, TextSize=10, Font=Enum.Font.Gotham, TextWrapped=true, LayoutOrder=nextOrder("Settings"), Parent=pg})
+    make("TextLabel", {Size=UDim2.new(1,0,0,34), BackgroundTransparency=1, Text="BaGAS v2.2  •  RightShift = menu\nDrag top bar to move  •  Thème : "..tostring(Config.Theme), TextColor3=T.TextFaint, TextSize=10, Font=Enum.Font.Gotham, TextWrapped=true, LayoutOrder=nextOrder("Settings"), Parent=pg})
     task.defer(tagCanvas)
 end
+
+    return {SG = SG, StatCash = StatCash, StatWave = StatWave, StatCount = StatCount, statsLbl = statsLbl, detectLbl = detectLbl}
+end
+GUI = buildGUI()
 
 -- ============================================================
 -- HEARTBEAT (lightweight, single connection)
@@ -3498,24 +3826,24 @@ task.spawn(function()
         pcall(function()
             local cash = getPlayerCash()
             local wave = getPlayerWave()
-            StatCash.Text = "$"..fmt(cash)
-            StatWave.Text = "Wave "..tostring(wave)
-            StatCount.Text = string.format("%d placed • %d↑", Config.PlacedCount, Config.UpgradedCount)
-            if statsLbl then
-                statsLbl.Text = string.format("Bought: %d | Skipped: %d\nPlaced: %d | Upgraded: %d\nRebirths: %d", Config.BoughtCount, Config.SkippedCount, Config.PlacedCount, Config.UpgradedCount, Config.RebirthCount)
+            GUI.StatCash.Text = "$"..fmt(cash)
+            GUI.StatWave.Text = "Wave "..tostring(wave)
+            GUI.StatCount.Text = string.format("%d placed • %d↑", Config.PlacedCount, Config.UpgradedCount)
+            if GUI.statsLbl then
+                GUI.statsLbl.Text = string.format("Bought: %d | Skipped: %d\nPlaced: %d | Upgraded: %d\nRebirths: %d", Config.BoughtCount, Config.SkippedCount, Config.PlacedCount, Config.UpgradedCount, Config.RebirthCount)
             end
-            if detectLbl then
+            if GUI.detectLbl then
                 local plot = getPlot()
                 local plotName = plot and (plot.Name.." ("..plot.ClassName..")") or "nil"
                 local boxTxt = Config.LastBoxPrice and fmt(Config.LastBoxPrice) or "?"
-                detectLbl.Text = string.format("Plot: %s\nCash: %s | Box: %s\nLast: %s", plotName, fmt(cash), boxTxt, tostring(Config.LastBoxAction or "-"))
+                GUI.detectLbl.Text = string.format("Plot: %s\nCash: %s | Box: %s\nLast: %s", plotName, fmt(cash), boxTxt, tostring(Config.LastBoxAction or "-"))
                 -- color by detection
                 if cash==0 and wave==0 and (not plot) then
-                    detectLbl.TextColor3 = Color3.fromRGB(220,80,80)
+                    GUI.detectLbl.TextColor3 = Color3.fromRGB(220,80,80)
                 elseif cash==0 or wave==0 then
-                    detectLbl.TextColor3 = Color3.fromRGB(220,180,80)
+                    GUI.detectLbl.TextColor3 = Color3.fromRGB(220,180,80)
                 else
-                    detectLbl.TextColor3 = T.PrimaryLight
+                    GUI.detectLbl.TextColor3 = T.PrimaryLight
                 end
             end
         end)
