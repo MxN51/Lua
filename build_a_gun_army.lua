@@ -2972,25 +2972,68 @@ trackConn(UserInputService.JumpRequest:Connect(function()
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end))
+
 local antiAFKThread
+local antiAFKConn
 local function setAntiAFK(on)
-    if on then
-        if antiAFKThread then return end
-        antiAFKThread = task.spawn(function()
-            while Config.AntiAFK and not Config.Unloaded do
-                pcall(function()
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F15, false, game)
-                    task.wait(0.05)
-                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F15, false, game)
-                end)
-                task.wait(300)
-            end
-            antiAFKThread = nil
-        end)
-    else
-        Config.AntiAFK = false
+    Config.AntiAFK = on and true or false
+
+    -- Nettoyage propre et immédiat des processus précédents
+    if antiAFKConn then
+        pcall(function() antiAFKConn:Disconnect() end)
+        antiAFKConn = nil
+    end
+
+    if antiAFKThread then
+        pcall(function() task.cancel(antiAFKThread) end)
         antiAFKThread = nil
     end
+
+    if not Config.AntiAFK then return end
+
+    -- Couche 1 : Désactivation des scripts internes Roblox (la méthode absolue si supportée)
+    pcall(function()
+        local getconn = rawget(_G, "getconnections") or (typeof(getgenv) == "function" and getgenv().getconnections)
+        if type(getconn) == "function" then
+            for _, conn in ipairs(getconn(LocalPlayer.Idled)) do
+                if conn["Disable"] then
+                    conn:Disable()
+                elseif conn["disconnect"] then
+                    conn:disconnect()
+                end
+            end
+        end
+    end)
+
+    -- Couche 2 : Écouteur sur Idled avec simulation VirtualUser
+    local okConn, conn = pcall(function()
+        return LocalPlayer.Idled:Connect(function()
+            if not Config.AntiAFK or Config.Unloaded then return end
+            pcall(function()
+                local vu = game:GetService("VirtualUser")
+                vu:CaptureController()
+                vu:ClickButton2(Vector2.new(0, 0))
+            end)
+        end)
+    end)
+    if okConn and conn then
+        antiAFKConn = conn
+    end
+
+    -- Couche 3 : Watchdog actif toutes les 120s (sans conflit de touche clavier)
+    antiAFKThread = task.spawn(function()
+        while Config.AntiAFK and not Config.Unloaded do
+            task.wait(120)
+            if not Config.AntiAFK or Config.Unloaded then break end
+
+            pcall(function()
+                local vu = game:GetService("VirtualUser")
+                vu:CaptureController()
+                vu:ClickButton2(Vector2.new(0, 0))
+            end)
+        end
+        antiAFKThread = nil
+    end)
 end
 
 -- ============================================================
